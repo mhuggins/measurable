@@ -1,0 +1,54 @@
+{
+  "name": "measurable",
+  "version": "1.0.0",
+  "description": "Convert between units of measurement with custom and built-in systems",
+  "keywords": [
+    "conversion",
+    "convert",
+    "magnitude",
+    "measure",
+    "measurement",
+    "measurements",
+    "quantities",
+    "quantity",
+    "unit",
+    "units"
+  ],
+  "author": "Matt Huggins <matt.huggins@gmail.com>",
+  "license": "ISC",
+  "repository": "https://github.com/mhuggins/measurable",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./dimensions": {
+      "types": "./dist/dimensions/index.d.ts",
+      "default": "./dist/dimensions/index.js"
+    },
+    "./systems": {
+      "types": "./dist/systems/index.d.ts",
+      "default": "./dist/systems/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prebuild": "pnpm run lint && pnpm run format && pnpm run typecheck && pnpm run test",
+    "prepublishOnly": "pnpm run build",
+    "build": "tsc",
+    "lint": "biome check .",
+    "format": "biome format .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
+  }
+}
