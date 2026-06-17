@@ -43,8 +43,8 @@ export interface PrefixReference {
   name: string;
   /** Primary symbol, e.g. "m" → "km", "mm", … */
   symbol: string;
-  /** Scale of the reference relative to its dimension's base (meter → 1, gram → 0.001). */
-  scale: number;
+  /** Scale of the reference relative to its dimension's base (meter → 1, gram → 0.001) (default 1). */
+  scale?: number;
 }
 
 /**
@@ -74,7 +74,7 @@ export function definePrefixed(
     if (prefix.name === "micro") {
       aliases.push(`u${reference.symbol}`);
     }
-    units[name] = dimension.unit(name, reference.scale * prefix.factor, aliases);
+    units[name] = dimension.unit(name, (reference.scale ?? 1) * prefix.factor, aliases);
   }
   return units;
 }

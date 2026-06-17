@@ -36,5 +36,5 @@ export const tablespoon = volume.unit("tablespoon", 0.01478676478125, ["tbsp", "
 export const teaspoon = volume.unit("teaspoon", 0.00492892159375, ["tsp", "teaspoons"]);
 
 /** Every SI-prefixed liter (milliliter, centiliter, kiloliter, …), keyed by name. */
-export const metricVolume = definePrefixed(volume, { name: "liter", symbol: "L", scale: 1 });
+export const metricVolume = definePrefixed(volume, { name: "liter", symbol: "L" });
 export const { kiloliter, hectoliter, decaliter, deciliter, centiliter, milliliter } = metricVolume;

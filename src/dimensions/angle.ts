@@ -12,7 +12,7 @@ export const turn = angle.unit("turn", 2 * Math.PI, ["turns", "revolution", "rev
 /** SI-submultiple radians (milliradian, microradian, …); larger angles use degree/turn. */
 export const metricAngle = definePrefixed(
   angle,
-  { name: "radian", symbol: "rad", scale: 1 },
+  { name: "radian", symbol: "rad" },
   SI_SUBMULTIPLE_PREFIXES,
 );
 export const { milliradian, microradian } = metricAngle;

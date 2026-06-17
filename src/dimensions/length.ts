@@ -13,7 +13,7 @@ export const yard = length.unit("yard", 0.9144, ["yd", "yards"]);
 export const mile = length.unit("mile", 1609.344, ["mi", "miles"]);
 
 /** Every SI-prefixed meter (kilometer, centimeter, micrometer, …), keyed by name. */
-export const metricLength = definePrefixed(length, { name: "meter", symbol: "m", scale: 1 });
+export const metricLength = definePrefixed(length, { name: "meter", symbol: "m" });
 export const {
   kilometer,
   hectometer,

@@ -16,7 +16,7 @@ export const week = time.unit("week", 604800, ["wk", "weeks"]);
  */
 export const metricTime = definePrefixed(
   time,
-  { name: "second", symbol: "s", scale: 1 },
+  { name: "second", symbol: "s" },
   SI_SUBMULTIPLE_PREFIXES,
 );
 export const { millisecond, microsecond, nanosecond, picosecond } = metricTime;

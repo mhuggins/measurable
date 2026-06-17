@@ -10,5 +10,5 @@ export const poundForce = force.unit("poundForce", 4.4482216152605, ["lbf"]);
 export const kilogramForce = force.unit("kilogramForce", 9.80665, ["kgf"]);
 
 /** Every SI-prefixed newton (kilonewton, meganewton, millinewton, …), keyed by name. */
-export const metricForce = definePrefixed(force, { name: "newton", symbol: "N", scale: 1 });
+export const metricForce = definePrefixed(force, { name: "newton", symbol: "N" });
 export const { meganewton, kilonewton, millinewton, micronewton } = metricForce;

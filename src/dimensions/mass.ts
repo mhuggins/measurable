@@ -22,7 +22,7 @@ export const shortTon = mass.unit("shortTon", 907_184.74, ["ton", "tons"]);
 export const longTon = mass.unit("longTon", 1_016_046.9088, ["ton", "tons"]);
 
 /** Every SI-prefixed gram — including the kilogram — keyed by name. */
-export const metricMass = definePrefixed(mass, { name: "gram", symbol: "g", scale: 1 });
+export const metricMass = definePrefixed(mass, { name: "gram", symbol: "g" });
 export const {
   kilogram,
   megagram,
