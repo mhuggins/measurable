@@ -197,6 +197,11 @@ describe("Quantity arithmetic", () => {
     expect(new Quantity(5, meter).negate().magnitude).toBe(-5);
   });
 
+  it("takes the absolute value", () => {
+    expect(new Quantity(-5, meter).abs().magnitude).toBe(5);
+    expect(new Quantity(5, meter).abs().magnitude).toBe(5);
+  });
+
   it("is immutable — operands are not modified", () => {
     const a = new Quantity(1, mile);
     const b = new Quantity(1, kilometer);

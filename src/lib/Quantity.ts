@@ -62,6 +62,11 @@ export class Quantity {
     return new Quantity(-this.magnitude, this.unit);
   }
 
+  /** Return this quantity with a non-negative magnitude. */
+  abs(): Quantity {
+    return new Quantity(Math.abs(this.magnitude), this.unit);
+  }
+
   /** Alias for {@link plus}. */
   add(other: Quantity): Quantity {
     return this.plus(other);

@@ -159,8 +159,9 @@ new Quantity(1, shortTon).in(tonne); // 0.90718474
 
 Quantities can be combined. `plus`/`minus` take another `Quantity` (converted into
 the receiver's unit first, so the operands may use different units of the same
-dimension); `times`/`dividedBy`/`negate` apply a dimensionless scalar. All return a
-**new** `Quantity` in the receiver's unit and leave the operands untouched.
+dimension); `times`/`dividedBy` apply a dimensionless scalar, and `negate`/`abs`
+transform the magnitude. All return a **new** `Quantity` in the receiver's unit and
+leave the operands untouched.
 
 ```ts
 import { Quantity } from "measurable";
@@ -295,7 +296,7 @@ A passive handle, normally created via a dimension's builder methods rather than
 - `.in(target)` → `number`
 - `.plus(other)` / `.minus(other)` → `Quantity` — add/subtract another quantity (aliases: `add` / `sub`)
 - `.times(factor)` / `.dividedBy(divisor)` → `Quantity` — scale by a number (aliases: `mul` / `div`)
-- `.negate()` → `Quantity`
+- `.negate()` / `.abs()` → `Quantity`
 - `.equals(other)` / `.notEquals(other)` → `boolean` (aliases: `eq` / `ne`)
 - `.lessThan(other)` / `.greaterThan(other)` → `boolean` (aliases: `lt` / `gt`)
 - `.lessThanOrEqual(other)` / `.greaterThanOrEqual(other)` → `boolean` (aliases: `lte` / `gte`)
