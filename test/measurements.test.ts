@@ -250,6 +250,16 @@ describe("Quantity comparison", () => {
     expect(smaller.gte(a)).toBe(false);
   });
 
+  it("compareTo returns -1/0/1 and works as a sort comparator", () => {
+    const m1 = new Quantity(1, meter);
+    const km1 = new Quantity(1, kilometer);
+    expect(m1.compareTo(km1)).toBe(-1);
+    expect(km1.compareTo(m1)).toBe(1);
+    expect(km1.compareTo(new Quantity(1000, meter))).toBe(0);
+    const sorted = [km1, m1, new Quantity(500, meter)].sort((a, b) => a.compareTo(b));
+    expect(sorted.map((q) => q.in(meter))).toEqual([1, 500, 1000]);
+  });
+
   it("throws when comparing different dimensions", () => {
     expect(() => new Quantity(1, meter).equals(new Quantity(1, liter))).toThrow(
       InvalidConversionError,

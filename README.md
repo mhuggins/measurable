@@ -199,6 +199,9 @@ Short aliases: **`eq`** (`equals`), **`ne`** (`notEquals`), **`lt`** (`lessThan`
 (`greaterThanOrEqual`). Equality is exact, so values differing only by
 floating-point rounding from a conversion may compare unequal.
 
+`compareTo(other)` returns `-1`, `0`, or `1`, suitable as an `Array#sort`
+comparator: `quantities.sort((a, b) => a.compareTo(b))`.
+
 ## Defining your own units
 
 Create a `Dimension` and add units through its builder methods. `scale` is how
@@ -296,6 +299,7 @@ A passive handle, normally created via a dimension's builder methods rather than
 - `.equals(other)` / `.notEquals(other)` → `boolean` (aliases: `eq` / `ne`)
 - `.lessThan(other)` / `.greaterThan(other)` → `boolean` (aliases: `lt` / `gt`)
 - `.lessThanOrEqual(other)` / `.greaterThanOrEqual(other)` → `boolean` (aliases: `lte` / `gte`)
+- `.compareTo(other)` → `-1 | 0 | 1` — sort comparator
 - `Quantity.parse(input, dimension, { prefer? })` → `Quantity`
 
 ### `MeasurementSystem`

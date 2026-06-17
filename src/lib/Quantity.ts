@@ -148,6 +148,21 @@ export class Quantity {
   }
 
   /**
+   * Compare with `other` (in this quantity's unit): `-1` if this is smaller, `1`
+   * if larger, `0` if equal. Suitable as an `Array#sort` comparator.
+   */
+  compareTo(other: Quantity): number {
+    const value = other.in(this.unit);
+    if (this.magnitude < value) {
+      return -1;
+    }
+    if (this.magnitude > value) {
+      return 1;
+    }
+    return 0;
+  }
+
+  /**
    * Parse a string into a `Quantity` using a dimension's known units and aliases.
    *
    *  - `"1km"`        -> `Quantity(1, kilometer)`
