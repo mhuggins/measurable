@@ -64,11 +64,20 @@ Import any dimension or unit from `measurable/dimensions`:
 | ------------- | ---------- | ----------------------------------------------------------------------------------- |
 | `length`      | `meter`    | `kilometer`, `centimeter`, `millimeter`, `inch`, `foot`, `yard`, `mile`             |
 | `volume`      | `liter`    | `milliliter`, `us*`/`imperial*` `Gallon`/`Quart`/`Pint`/`Gill`/`FluidOunce`, `cup`, `tablespoon`, `teaspoon` |
-| `mass`        | `kilogram` | `gram`, `milligram`, `tonne`, `pound`, `ounce`, `stone`, `shortTon`, `longTon`      |
+| `mass`        | `gram`     | `kilogram`, `milligram`, `tonne`, `pound`, `ounce`, `stone`, `shortTon`, `longTon`  |
 | `time`        | `second`   | `millisecond`, `minute`, `hour`, `day`, `week`                                      |
 | `temperature` | `kelvin`   | `celsius`, `fahrenheit`                                                              |
 | `angle`       | `radian`   | `degree`, `gradian`, `turn`                                                          |
 | `force`       | `newton`   | `kilonewton`, `dyne`, `poundForce`, `kilogramForce`                                  |
+
+The metric units carry the **full SI prefix ladder** (yotta → yocto), generated for
+you: `length`, `mass`, `volume`, and `force` get every prefix (so `kilogram`
+itself is just the kilo-prefixed gram), while `time` and `angle` get the
+fractional prefixes only (e.g.
+`millisecond`, `microradian`). So `decimeter`, `hectometer`, `megagram`,
+`kiloliter`, `nanosecond`, etc. are all available and parse from their symbols
+(`dm`, `hm`, `Mg`, `kL`, `ns`, and `µm`/`um` for micro). You can apply the same
+ladder to your own dimensions with `definePrefixed` (see below).
 
 ## Built-in measurement systems
 
@@ -182,6 +191,22 @@ dim.custom("squared", {
   toBase: (x) => x * x,
   fromBase: (x) => Math.sqrt(x),
 });
+```
+
+### Generating SI prefixes
+
+`definePrefixed` adds the metric prefix ladder to a reference unit and returns the
+created units keyed by name (skipping any name that already exists). Pass
+`SI_SUBMULTIPLE_PREFIXES` to generate fractions only.
+
+```ts
+import { Dimension, Quantity, definePrefixed } from "measurable";
+
+const data = new Dimension("data");
+const bit = data.base("bit", ["b"]);
+const prefixed = definePrefixed(data, { name: "bit", symbol: "b", scale: 1 });
+
+new Quantity(1, prefixed.kilobit).in(bit); // 1000  (SI kilo = 1e3)
 ```
 
 ### Tagging units into a measurement system

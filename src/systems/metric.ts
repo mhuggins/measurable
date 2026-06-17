@@ -1,24 +1,21 @@
-import { centimeter, kilometer, meter, millimeter } from "../dimensions/length";
-import { gram, kilogram, milligram, tonne } from "../dimensions/mass";
+import { meter, metricLength } from "../dimensions/length";
+import { gram, metricMass, tonne } from "../dimensions/mass";
 import { celsius, kelvin } from "../dimensions/temperature";
-import { liter, milliliter } from "../dimensions/volume";
+import { liter, metricVolume } from "../dimensions/volume";
 import { MeasurementSystem } from "../lib/MeasurementSystem";
 
-/** The metric / SI standard. */
+/** The metric / SI standard, including the full SI-prefixed unit ladders. */
 export const metric = new MeasurementSystem("metric").add(
   // length
   meter,
-  kilometer,
-  centimeter,
-  millimeter,
+  ...Object.values(metricLength),
   // mass
-  kilogram,
   gram,
-  milligram,
   tonne,
+  ...Object.values(metricMass),
   // volume
   liter,
-  milliliter,
+  ...Object.values(metricVolume),
   // temperature
   kelvin,
   celsius,

@@ -7,8 +7,28 @@ import {
   Quantity,
   UnknownUnitError,
 } from "../src";
-import { foot, inch, length, meter, mile } from "../src/dimensions/length";
-import { kilogram, longTon, mass, shortTon, tonne } from "../src/dimensions/mass";
+import {
+  decameter,
+  decimeter,
+  foot,
+  hectometer,
+  inch,
+  kilometer,
+  length,
+  meter,
+  micrometer,
+  mile,
+} from "../src/dimensions/length";
+import {
+  gram,
+  kilogram,
+  longTon,
+  mass,
+  megagram,
+  milligram,
+  shortTon,
+  tonne,
+} from "../src/dimensions/mass";
 import { celsius, fahrenheit, kelvin } from "../src/dimensions/temperature";
 import { hour, minute, second, time } from "../src/dimensions/time";
 import {
@@ -155,5 +175,31 @@ describe("custom dimensions", () => {
     const byte = data.base("byte", ["B", "bytes"]);
     const kilobyte = data.unit("kilobyte", 1024, ["KB"]);
     expect(new Quantity(2, kilobyte).in(byte)).toBe(2048);
+  });
+});
+
+describe("metric prefixes", () => {
+  it("fills in the SI ladder for length", () => {
+    expect(new Quantity(1, kilometer).in(meter)).toBe(1000);
+    expect(new Quantity(1, hectometer).in(meter)).toBeCloseTo(100, 9);
+    expect(new Quantity(1, decameter).in(meter)).toBeCloseTo(10, 9);
+    expect(new Quantity(1, decimeter).in(meter)).toBeCloseTo(0.1, 12);
+    expect(new Quantity(1, micrometer).in(meter)).toBeCloseTo(1e-6, 18);
+  });
+
+  it("prefixes the gram (not the kilogram base) for mass", () => {
+    expect(new Quantity(1, megagram).in(kilogram)).toBeCloseTo(1000, 6);
+    expect(new Quantity(1000, milligram).in(gram)).toBeCloseTo(1, 9);
+  });
+
+  it("parses prefixed symbols, including the micro sign", () => {
+    expect(Quantity.parse("3 km", length).unit.name).toBe("kilometer");
+    expect(Quantity.parse("250 mL", volume).unit.name).toBe("milliliter");
+    expect(Quantity.parse("5 µm", length).unit.name).toBe("micrometer");
+  });
+
+  it("tags the prefixed metric units into the metric system", () => {
+    expect(metric.has(decameter)).toBe(true);
+    expect(metric.has(megagram)).toBe(true);
   });
 });

@@ -1,10 +1,10 @@
 import { Dimension } from "../lib/Dimension";
+import { definePrefixed } from "../lib/prefixes";
 
 /** Volume / capacity. Base unit: liter. */
 export const volume = new Dimension("volume");
 
 export const liter = volume.base("liter", ["L", "liters"]);
-export const milliliter = volume.unit("milliliter", 0.001, ["mL", "milliliters"]);
 
 // US and Imperial liquid measures share names ("gallon", "pint", …) but differ
 // in size, so each is a distinct unit carrying the shared aliases; parsing
@@ -34,3 +34,7 @@ export const imperialFluidOunce = volume.unit("imperialFluidOunce", 0.0284130625
 export const cup = volume.unit("cup", 0.2365882365, ["cups"]);
 export const tablespoon = volume.unit("tablespoon", 0.01478676478125, ["tbsp", "tablespoons"]);
 export const teaspoon = volume.unit("teaspoon", 0.00492892159375, ["tsp", "teaspoons"]);
+
+/** Every SI-prefixed liter (milliliter, centiliter, kiloliter, …), keyed by name. */
+export const metricVolume = definePrefixed(volume, { name: "liter", symbol: "L", scale: 1 });
+export const { kiloliter, hectoliter, decaliter, deciliter, centiliter, milliliter } = metricVolume;
