@@ -28,6 +28,11 @@ export class Quantity {
     return this.unit.dimension.convert(this.magnitude, this.unit, target);
   }
 
+  /** Render as `"<magnitude> <unit name>"`, e.g. `"5 kilometer"`. */
+  toString(): string {
+    return `${this.magnitude} ${this.unit.name}`;
+  }
+
   /**
    * Add another quantity, returned in *this* quantity's unit. The other operand
    * is converted into this unit first, so the two may use different units of the

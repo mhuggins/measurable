@@ -331,3 +331,11 @@ describe("metric prefixes", () => {
     expect(metric.has(megagram)).toBe(true);
   });
 });
+
+describe("Quantity formatting", () => {
+  it("toString renders the magnitude and unit name", () => {
+    expect(new Quantity(5, kilometer).toString()).toBe("5 kilometer");
+    expect(String(new Quantity(2.5, meter))).toBe("2.5 meter");
+    expect(`${new Quantity(3, meter)}`).toBe("3 meter");
+  });
+});

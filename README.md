@@ -115,6 +115,9 @@ metric.express(new Quantity(5000, meter));    // Quantity(5, kilometer)
 imperial.express(new Quantity(5000, meter));  // Quantity(3.107…, mile)
 ```
 
+A `Quantity` also has a `toString()` that renders `"<magnitude> <unit name>"`
+(e.g. `new Quantity(5, kilometer).toString()` → `"5 kilometer"`).
+
 ## Parsing strings
 
 `Quantity.parse(input, dimension, options?)` reads a string into a `Quantity`.
@@ -312,6 +315,7 @@ A passive handle, normally created via a dimension's builder methods rather than
 - `new Quantity(magnitude, unit)`
 - `.to(target)` → `Quantity`
 - `.in(target)` → `number`
+- `.toString()` → `string` — e.g. `"5 kilometer"`
 - `.plus(other)` / `.minus(other)` → `Quantity` — add/subtract another quantity (aliases: `add` / `sub`)
 - `.times(factor)` / `.dividedBy(divisor)` → `Quantity` — scale by a number (aliases: `mul` / `div`)
 - `.negate()` / `.abs()` → `Quantity`
