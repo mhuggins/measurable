@@ -62,6 +62,16 @@ export class Quantity {
     return new Quantity(this.magnitude / divisor, this.unit);
   }
 
+  /**
+   * Divide this quantity by `other` of the same dimension, yielding the
+   * dimensionless ratio between them — i.e. how many of `other` fit in this.
+   * Unlike {@link in}, this accounts for `other`'s magnitude, not just its unit.
+   * Throws {@link InvalidConversionError} across dimensions.
+   */
+  ratioTo(other: Quantity): number {
+    return this.magnitude / other.in(this.unit);
+  }
+
   /** Return this quantity with its magnitude negated. */
   negate(): Quantity {
     return new Quantity(-this.magnitude, this.unit);

@@ -202,6 +202,18 @@ describe("Quantity arithmetic", () => {
     expect(new Quantity(5, meter).abs().magnitude).toBe(5);
   });
 
+  it("ratioTo gives the dimensionless ratio between two quantities", () => {
+    // How many 250 mL servings fit in a 2 L bottle?
+    expect(new Quantity(2, liter).ratioTo(new Quantity(250, milliliter))).toBe(8);
+    // Same dimension, different units (here the divisor's magnitude is 1).
+    expect(new Quantity(1, mile).ratioTo(new Quantity(1, kilometer))).toBeCloseTo(1.609344, 6);
+    // Same unit, divisor magnitude ≠ 1.
+    expect(new Quantity(10, meter).ratioTo(new Quantity(2, meter))).toBe(5);
+    expect(() => new Quantity(1, meter).ratioTo(new Quantity(1, liter))).toThrow(
+      InvalidConversionError,
+    );
+  });
+
   it("clamps to a range, returned in this quantity's unit", () => {
     const lower = new Quantity(1, meter);
     const upper = new Quantity(1, kilometer);

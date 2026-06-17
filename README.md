@@ -184,6 +184,25 @@ Combining different dimensions throws `InvalidConversionError`. Note that adding
 **affine** units (e.g. temperatures) is mathematically defined but physically
 questionable, since it adds absolute points rather than a difference.
 
+## Ratios
+
+`ratioTo` divides two quantities of the **same dimension** and returns a plain
+(dimensionless) number — _how many of one fit in the other_:
+
+```ts
+import { Quantity } from "measurable";
+import { liter, milliliter } from "measurable/dimensions";
+
+// How many 250 mL servings are in a 2 L bottle?
+new Quantity(2, liter).ratioTo(new Quantity(250, milliliter)); // 8
+```
+
+This is different from `.in(unit)`: `.in(milliliter)` only uses the *unit* on the
+right (giving `2000`), whereas `ratioTo` also uses the other quantity's
+**magnitude** (the `250`), so it answers "how many of *that quantity* fit in this
+one." It's the inverse of scalar `times` — `b.times(a.ratioTo(b))` reconstructs
+`a`. Comparing different dimensions throws `InvalidConversionError`.
+
 ## Comparison
 
 `equals`/`notEquals`/`lessThan`/`greaterThan`/`lessThanOrEqual`/`greaterThanOrEqual`
@@ -320,6 +339,7 @@ A passive handle, normally created via a dimension's builder methods rather than
 - `.toString()` → `string` — e.g. `"5 kilometer"`
 - `.plus(other)` / `.minus(other)` → `Quantity` — add/subtract another quantity (aliases: `add` / `sub`)
 - `.times(factor)` / `.dividedBy(divisor)` → `Quantity` — scale by a number (aliases: `mul` / `div`)
+- `.ratioTo(other)` → `number` — dimensionless ratio (how many of `other` fit in this)
 - `.negate()` / `.abs()` → `Quantity`
 - `.clamp(lower, upper)` → `Quantity` — bound to a range, in this unit
 - `.round(decimals?)` → `Quantity` — round the magnitude (default 0 decimals)
