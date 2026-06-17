@@ -203,6 +203,24 @@ floating-point rounding from a conversion may compare unequal.
 `compareTo(other)` returns `-1`, `0`, or `1`, suitable as an `Array#sort`
 comparator: `quantities.sort((a, b) => a.compareTo(b))`.
 
+## Combining many quantities
+
+Static helpers operate on several quantities at once (each is converted as needed,
+so mixing dimensions throws `InvalidConversionError`):
+
+```ts
+import { Quantity } from "measurable";
+import { kilometer, meter } from "measurable/dimensions";
+
+const a = new Quantity(1, kilometer);
+const b = new Quantity(500, meter);
+
+Quantity.min(a, b);                 // Quantity(500, meter) — the smaller
+Quantity.max(a, b);                 // Quantity(1, kilometer) — the larger
+Quantity.sum(a, b);                 // Quantity(1.5, kilometer) — total, in a's unit
+Quantity.clamp(b, a, new Quantity(2, kilometer)); // b bounded to [a, 2 km], in b's unit
+```
+
 ## Defining your own units
 
 Create a `Dimension` and add units through its builder methods. `scale` is how
@@ -301,6 +319,8 @@ A passive handle, normally created via a dimension's builder methods rather than
 - `.lessThan(other)` / `.greaterThan(other)` → `boolean` (aliases: `lt` / `gt`)
 - `.lessThanOrEqual(other)` / `.greaterThanOrEqual(other)` → `boolean` (aliases: `lte` / `gte`)
 - `.compareTo(other)` → `-1 | 0 | 1` — sort comparator
+- `Quantity.min(...quantities)` / `Quantity.max(...quantities)` / `Quantity.sum(...quantities)` → `Quantity`
+- `Quantity.clamp(value, lower, upper)` → `Quantity`
 - `Quantity.parse(input, dimension, { prefer? })` → `Quantity`
 
 ### `MeasurementSystem`

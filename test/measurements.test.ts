@@ -272,6 +272,40 @@ describe("Quantity comparison", () => {
   });
 });
 
+describe("Quantity statics", () => {
+  it("min/max pick the extreme quantity", () => {
+    const a = new Quantity(1, kilometer);
+    const b = new Quantity(500, meter);
+    const c = new Quantity(2, kilometer);
+    expect(Quantity.min(a, b, c)).toBe(b);
+    expect(Quantity.max(a, b, c)).toBe(c);
+  });
+
+  it("sum totals in the first quantity's unit", () => {
+    const total = Quantity.sum(new Quantity(1, kilometer), new Quantity(500, meter));
+    expect(total.unit).toBe(kilometer);
+    expect(total.magnitude).toBe(1.5);
+  });
+
+  it("clamp bounds a value, returned in the value's unit", () => {
+    const lower = new Quantity(1, meter);
+    const upper = new Quantity(1, kilometer);
+    expect(Quantity.clamp(new Quantity(500, meter), lower, upper).magnitude).toBe(500);
+    const belowed = Quantity.clamp(new Quantity(0, meter), lower, upper);
+    expect(belowed.unit).toBe(meter);
+    expect(belowed.magnitude).toBe(1);
+    const aboved = Quantity.clamp(new Quantity(5, kilometer), lower, upper);
+    expect(aboved.unit).toBe(kilometer);
+    expect(aboved.magnitude).toBe(1);
+  });
+
+  it("throws when mixing dimensions", () => {
+    expect(() => Quantity.min(new Quantity(1, meter), new Quantity(1, liter))).toThrow(
+      InvalidConversionError,
+    );
+  });
+});
+
 describe("metric prefixes", () => {
   it("fills in the SI ladder for length", () => {
     expect(new Quantity(1, kilometer).in(meter)).toBe(1000);

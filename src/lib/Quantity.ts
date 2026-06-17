@@ -203,6 +203,32 @@ export class Quantity {
 
     return new Quantity(finest.fromBase(total), finest);
   }
+
+  /** The smallest of the given quantities (by value); requires at least one. */
+  static min(first: Quantity, ...rest: Quantity[]): Quantity {
+    return rest.reduce((smallest, q) => (q.lessThan(smallest) ? q : smallest), first);
+  }
+
+  /** The largest of the given quantities (by value); requires at least one. */
+  static max(first: Quantity, ...rest: Quantity[]): Quantity {
+    return rest.reduce((largest, q) => (q.greaterThan(largest) ? q : largest), first);
+  }
+
+  /** The sum of the given quantities, in the first one's unit; requires at least one. */
+  static sum(first: Quantity, ...rest: Quantity[]): Quantity {
+    return rest.reduce((total, q) => total.plus(q), first);
+  }
+
+  /** Clamp `value` to the range [`lower`, `upper`], returned in `value`'s unit. */
+  static clamp(value: Quantity, lower: Quantity, upper: Quantity): Quantity {
+    if (value.lessThan(lower)) {
+      return lower.to(value.unit);
+    }
+    if (value.greaterThan(upper)) {
+      return upper.to(value.unit);
+    }
+    return value;
+  }
 }
 
 /** Resolve a token to a single unit, disambiguating shared aliases by system. */
