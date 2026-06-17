@@ -60,24 +60,66 @@ new Quantity(100, celsius).in(fahrenheit); // 212
 
 Import any dimension or unit from `measurable/dimensions`:
 
-| Dimension     | Base       | Units (a selection)                                                                 |
-| ------------- | ---------- | ----------------------------------------------------------------------------------- |
-| `length`      | `meter`    | `kilometer`, `centimeter`, `millimeter`, `inch`, `foot`, `yard`, `mile`             |
-| `volume`      | `liter`    | `milliliter`, `us*`/`imperial*` `Gallon`/`Quart`/`Pint`/`Gill`/`FluidOunce`, `cup`, `tablespoon`, `teaspoon` |
-| `mass`        | `gram`     | `kilogram`, `milligram`, `tonne`, `pound`, `ounce`, `stone`, `shortTon`, `longTon`  |
-| `time`        | `second`   | `millisecond`, `minute`, `hour`, `day`, `week`                                      |
-| `temperature` | `kelvin`   | `celsius`, `fahrenheit`                                                              |
-| `angle`       | `radian`   | `degree`, `gradian`, `turn`                                                          |
-| `force`       | `newton`   | `kilonewton`, `dyne`, `poundForce`, `kilogramForce`                                  |
+| Dimension            | Base                     | Units (a selection)                                                                                          |
+| -------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `length`             | `meter`                  | `kilometer`, `centimeter`, `millimeter`, `inch`, `foot`, `yard`, `mile`                                       |
+| `area`               | `squareMeter`            | `squareKilometer`, `hectare`, `are`, `squareInch`, `squareFoot`, `squareYard`, `acre`, `squareMile`          |
+| `volume`             | `liter`                  | `milliliter`, `us*`/`imperial*` `Gallon`/`Quart`/`Pint`/`Gill`/`FluidOunce`, `cup`, `tablespoon`, `teaspoon`  |
+| `mass`               | `gram`                   | `kilogram`, `milligram`, `tonne`, `pound`, `ounce`, `stone`, `shortTon`, `longTon`                            |
+| `time`               | `second`                 | `millisecond`, `minute`, `hour`, `day`, `week`                                                                |
+| `temperature`        | `kelvin`                 | `celsius`, `fahrenheit`                                                                                       |
+| `angle`              | `radian`                 | `degree`, `gradian`, `turn`                                                                                   |
+| `force`              | `newton`                 | `kilonewton`, `dyne`, `poundForce`, `kilogramForce`                                                           |
+| `energy`             | `joule`                  | `kilojoule`, `wattHour`, `kilowattHour`, `calorie`, `kilocalorie`, `britishThermalUnit`                       |
+| `power`              | `watt`                   | `kilowatt`, `megawatt`, `horsepower`, `metricHorsepower`                                                      |
+| `pressure`           | `pascal`                 | `kilopascal`, `bar`, `millibar`, `atmosphere`, `torr`, `psi`, `inchOfMercury`, `inchOfWater`                  |
+| `frequency`          | `hertz`                  | `kilohertz`, `megahertz`, `gigahertz`, `terahertz`                                                            |
+| `data`               | `bit`                    | `byte`, `nibble`, `kilobyte`…`petabyte` (SI), `kibibyte`…`pebibyte` (IEC)                                     |
+| `illuminance`        | `lux`                    | `kilolux`, `millilux`, `footCandle`, `phot`                                                                   |
+| `luminance`          | `candelaPerSquareMeter`  | `nit`, `stilb`                                                                                                |
+| `luminousIntensity`  | `candela`                | `kilocandela`, `millicandela`, `candlepower`, `hefnerkerze`                                                   |
 
 The metric units carry the **full SI prefix ladder** (yotta → yocto), generated for
-you: `length`, `mass`, `volume`, and `force` get every prefix (so `kilogram`
-itself is just the kilo-prefixed gram), while `time` and `angle` get the
-fractional prefixes only (e.g.
-`millisecond`, `microradian`). So `decimeter`, `hectometer`, `megagram`,
-`kiloliter`, `nanosecond`, etc. are all available and parse from their symbols
-(`dm`, `hm`, `Mg`, `kL`, `ns`, and `µm`/`um` for micro). You can apply the same
-ladder to your own dimensions with `definePrefixed` (see below).
+you: the SI-based dimensions (`length`, `mass`, `volume`, `force`, `energy`, `power`,
+`pressure`, `frequency`, `illuminance`, `luminousIntensity`) get every prefix (so
+`kilogram` itself is just the kilo-prefixed gram), while `time` and `angle` get the
+fractional prefixes only (e.g. `millisecond`, `microradian`). Every generated rung
+parses from its symbol (`dm`, `hm`, `Mg`, `kL`, `ns`, `GHz`, `kPa`, and `µm`/`um` for
+micro) and converts like any other unit. `data` additionally carries the **IEC binary**
+multiples (`kibibyte`, `mebibyte`, … = 1024-based) alongside the SI decimal ones
+(`kilobyte`, … = 1000-based). You can apply the same ladder to your own dimensions with
+`definePrefixed` (see below).
+
+### Prefixed unit exports
+
+Each prefixed dimension exports a **record** holding the _complete_ generated ladder
+keyed by name (the return value of `definePrefixed`), plus a **curated subset of those
+same units as individual named exports** for convenience. Reach any rung that isn't
+exported individually through the record — e.g. `metricLength.gigameter`,
+`metricMass.exagram` — or by parsing its symbol.
+
+| Dimension           | Record export(s)                 | Individually exported units                                                                                       |
+| ------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `length`            | `metricLength`                   | `kilometer`, `hectometer`, `decameter`, `decimeter`, `centimeter`, `millimeter`, `micrometer`, `nanometer`        |
+| `mass`              | `metricMass`                     | `kilogram`, `megagram`, `hectogram`, `decagram`, `decigram`, `centigram`, `milligram`, `microgram`, `nanogram`    |
+| `volume`            | `metricVolume`                   | `kiloliter`, `hectoliter`, `decaliter`, `deciliter`, `centiliter`, `milliliter`                                    |
+| `time`              | `metricTime`                     | `millisecond`, `microsecond`, `nanosecond`, `picosecond`                                                          |
+| `angle`             | `metricAngle`                    | `milliradian`, `microradian`                                                                                       |
+| `force`             | `metricForce`                    | `meganewton`, `kilonewton`, `millinewton`, `micronewton`                                                           |
+| `energy`            | `metricEnergy`, `metricWattHour` | `kilojoule`, `megajoule`, `gigajoule`, `millijoule`; `kilowattHour`, `megawattHour`, `gigawattHour`               |
+| `power`             | `metricPower`                    | `kilowatt`, `megawatt`, `gigawatt`, `terawatt`, `milliwatt`                                                        |
+| `pressure`          | `metricPressure`                 | `kilopascal`, `hectopascal`, `megapascal`, `gigapascal`                                                            |
+| `frequency`         | `metricFrequency`                | `kilohertz`, `megahertz`, `gigahertz`, `terahertz`, `petahertz`, `millihertz`                                      |
+| `illuminance`       | `metricIlluminance`              | `kilolux`, `millilux`, `microlux`                                                                                  |
+| `luminousIntensity` | `metricLuminousIntensity`        | `kilocandela`, `millicandela`, `microcandela`                                                                      |
+| `data`              | `dataMultiples`                  | `kilobit`/`kilobyte` … `petabit`/`petabyte` (SI), `kibibit`/`kibibyte` … `pebibit`/`pebibyte` (IEC)               |
+
+```ts
+import { metricLength, kilometer } from "measurable/dimensions";
+
+kilometer === metricLength.kilometer; // true — the named export is the same unit
+metricLength.gigameter;               // a rung not exported by name, reached via the record
+```
 
 ## Built-in measurement systems
 
@@ -91,6 +133,13 @@ imperial.has(foot);      // true  — a unit can belong to several systems
 usCustomary.has(foot);   // true
 metric.has(foot);        // false
 ```
+
+Membership spans every dimension: SI units (`squareMeter`, `pascal`, `watt`, `joule`,
+`hertz`, `lux`, `candela`, and their prefix ladders) are tagged into `metric`, while the
+customary ones (`squareFoot`, `acre`, `psi`, `horsepower`, `britishThermalUnit`,
+`footCandle`, `candlepower`) belong to both `imperial` and `usCustomary`. Units tied to
+no real-world standard (e.g. `atmosphere`, `torr`, and the `data` multiples) stay
+untagged — they still convert, they just won't appear under any system.
 
 ### Listing units in a system
 

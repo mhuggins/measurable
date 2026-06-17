@@ -7,6 +7,20 @@ import {
   Quantity,
   UnknownUnitError,
 } from "../src";
+import { angle } from "../src/dimensions/angle";
+import { acre, area, hectare, squareFoot, squareMeter } from "../src/dimensions/area";
+import { bit, byte, data, kibibyte, kilobyte, megabyte } from "../src/dimensions/data";
+import {
+  calorie,
+  energy,
+  joule,
+  kilojoule,
+  kilowattHour,
+  wattHour,
+} from "../src/dimensions/energy";
+import { force } from "../src/dimensions/force";
+import { frequency, hertz, kilohertz } from "../src/dimensions/frequency";
+import { footCandle, illuminance, lux } from "../src/dimensions/illuminance";
 import {
   decameter,
   decimeter,
@@ -19,6 +33,8 @@ import {
   micrometer,
   mile,
 } from "../src/dimensions/length";
+import { candelaPerSquareMeter, luminance, nit } from "../src/dimensions/luminance";
+import { candela, kilocandela, luminousIntensity } from "../src/dimensions/luminousIntensity";
 import {
   gram,
   kilogram,
@@ -29,7 +45,9 @@ import {
   shortTon,
   tonne,
 } from "../src/dimensions/mass";
-import { celsius, fahrenheit, kelvin } from "../src/dimensions/temperature";
+import { horsepower, kilowatt, power, watt } from "../src/dimensions/power";
+import { atmosphere, bar, kilopascal, pascal, pressure, psi } from "../src/dimensions/pressure";
+import { celsius, fahrenheit, kelvin, temperature } from "../src/dimensions/temperature";
 import { hour, minute, second, time } from "../src/dimensions/time";
 import {
   imperialFluidOunce,
@@ -171,9 +189,9 @@ describe("Quantity.parse", () => {
 
 describe("custom dimensions", () => {
   it("lets a user define their own dimension and units", () => {
-    const data = new Dimension("data");
-    const byte = data.base("byte", ["B", "bytes"]);
-    const kilobyte = data.unit("kilobyte", 1024, ["KB"]);
+    const customData = new Dimension("customData");
+    const byte = customData.base("byte", ["B", "bytes"]);
+    const kilobyte = customData.unit("kilobyte", 1024, ["KB"]);
     expect(new Quantity(2, kilobyte).in(byte)).toBe(2048);
   });
 });
@@ -366,5 +384,134 @@ describe("Quantity formatting", () => {
     expect(new Quantity(5, kilometer).toString()).toBe("5 kilometer");
     expect(String(new Quantity(2.5, meter))).toBe("2.5 meter");
     expect(`${new Quantity(3, meter)}`).toBe("3 meter");
+  });
+});
+
+describe("dimension coverage (parity with `convert`)", () => {
+  // Every measure exposed by jonahsnider/convert must have a counterpart here.
+  // See https://github.com/jonahsnider/convert/tree/main/src/conversions/measures
+  const provided = {
+    angle,
+    area,
+    data,
+    energy,
+    force,
+    frequency,
+    illuminance,
+    length,
+    luminance,
+    luminousIntensity,
+    mass,
+    power,
+    pressure,
+    temperature,
+    time,
+    volume,
+  } satisfies Record<string, Dimension>;
+
+  it("provides every dimension that `convert` exposes", () => {
+    const convertMeasures = [
+      "angle",
+      "area",
+      "data",
+      "energy",
+      "force",
+      "frequency",
+      "illuminance",
+      "length",
+      "luminance",
+      "luminousIntensity",
+      "mass",
+      "power",
+      "pressure",
+      "temperature",
+      "time",
+      "volume",
+    ];
+    for (const measure of convertMeasures) {
+      expect(provided).toHaveProperty(measure);
+    }
+  });
+
+  it("converts area units", () => {
+    expect(new Quantity(1, hectare).in(squareMeter)).toBeCloseTo(10000, 6);
+    expect(new Quantity(1, acre).in(squareFoot)).toBeCloseTo(43560, 2);
+  });
+
+  it("converts data units across SI and IEC multiples", () => {
+    expect(new Quantity(1, byte).in(bit)).toBe(8);
+    expect(new Quantity(1, kilobyte).in(byte)).toBe(1000);
+    expect(new Quantity(1, kibibyte).in(byte)).toBe(1024);
+    expect(new Quantity(1, megabyte).in(kilobyte)).toBe(1000);
+  });
+
+  it("converts energy units", () => {
+    expect(new Quantity(1, kilojoule).in(joule)).toBe(1000);
+    expect(new Quantity(1, wattHour).in(joule)).toBeCloseTo(3600, 6);
+    expect(new Quantity(1, kilowattHour).in(joule)).toBeCloseTo(3.6e6, 1);
+    expect(new Quantity(1, calorie).in(joule)).toBeCloseTo(4.184, 6);
+  });
+
+  it("converts frequency units", () => {
+    expect(new Quantity(1, kilohertz).in(hertz)).toBe(1000);
+  });
+
+  it("converts illuminance units", () => {
+    expect(new Quantity(1, footCandle).in(lux)).toBeCloseTo(10.764, 3);
+  });
+
+  it("treats the nit as candela per square meter", () => {
+    expect(nit).toBe(candelaPerSquareMeter);
+  });
+
+  it("converts luminous-intensity units", () => {
+    expect(new Quantity(1, kilocandela).in(candela)).toBe(1000);
+  });
+
+  it("converts power units", () => {
+    expect(new Quantity(1, kilowatt).in(watt)).toBe(1000);
+    expect(new Quantity(1, horsepower).in(watt)).toBeCloseTo(745.699872, 6);
+  });
+
+  it("converts pressure units", () => {
+    expect(new Quantity(1, kilopascal).in(pascal)).toBe(1000);
+    expect(new Quantity(1, bar).in(pascal)).toBe(1e5);
+    expect(new Quantity(1, atmosphere).in(pascal)).toBe(101325);
+    expect(new Quantity(1, psi).in(pascal)).toBeCloseTo(6894.757, 3);
+  });
+});
+
+describe("measurement-system membership for the added dimensions", () => {
+  it("tags the SI units into metric", () => {
+    for (const unit of [squareMeter, joule, watt, pascal, hertz, lux, candela]) {
+      expect(metric.has(unit)).toBe(true);
+    }
+    // The full SI ladders are tagged, not just the base unit.
+    expect(metric.has(kilopascal)).toBe(true);
+    expect(metric.has(kilowatt)).toBe(true);
+  });
+
+  it("tags the customary units into imperial and US customary", () => {
+    for (const unit of [squareFoot, acre, psi, horsepower, footCandle]) {
+      expect(imperial.has(unit)).toBe(true);
+      expect(usCustomary.has(unit)).toBe(true);
+    }
+    // …and keeps them out of metric.
+    expect(metric.has(psi)).toBe(false);
+    expect(metric.has(horsepower)).toBe(false);
+  });
+
+  it("leaves system-neutral units untagged", () => {
+    // atmosphere belongs to no real-world standard, so no system claims it.
+    expect(metric.has(atmosphere)).toBe(false);
+    expect(imperial.has(atmosphere)).toBe(false);
+    expect(usCustomary.has(atmosphere)).toBe(false);
+  });
+
+  it("lists and best-fit-expresses the new dimensions", () => {
+    expect(metric.in(area)).toContain(squareMeter);
+    expect(metric.in(pressure)).toContain(pascal);
+    // express now works for a metric-only dimension.
+    expect(metric.express(new Quantity(5000, hertz)).unit).toBe(kilohertz);
   });
 });
