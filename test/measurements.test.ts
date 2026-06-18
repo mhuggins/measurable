@@ -79,9 +79,9 @@ import { imperial, metric, usCustomary } from "../src/systems";
 describe("conversion is dimension-only", () => {
   it("converts across measurement systems within a dimension (tons ↔ tonnes)", () => {
     // The headline guarantee: a measurement-system tag never gates conversion.
-    expect(new Quantity(1, shortTon).in(tonne)).toBeCloseTo(0.90718474, 8);
+    expect(new Quantity(1, shortTon).in(tonne)).toBe(0.90718474);
     expect(new Quantity(1, tonne).in(shortTon)).toBeCloseTo(1.10231131, 6);
-    expect(new Quantity(1, longTon).in(tonne)).toBeCloseTo(1.0160469088, 8);
+    expect(new Quantity(1, longTon).in(tonne)).toBe(1.0160469088);
   });
 
   it("converts using the base-routed model (no backwards-factor bug)", () => {
@@ -95,14 +95,23 @@ describe("conversion is dimension-only", () => {
       [meter, mile],
       [liter, usGallon],
     ] as const) {
-      const there = a.dimension.convert(7, a, b);
-      const back = a.dimension.convert(there, b, a);
-      expect(back).toBeCloseTo(7, 10);
+      // Chaining through Quantity keeps the magnitude rational the whole way,
+      // so the round trip is exact even for awkward ratios like liter/usGallon.
+      expect(new Quantity(7, a).to(b).to(a).magnitude).toBe(7);
     }
   });
 
+  it("drifts when round-tripping through intermediate floats", () => {
+    // Collapsing to a number between conversions reintroduces binary rounding.
+    const there = liter.dimension.convert(7, liter, usGallon);
+    const back = liter.dimension.convert(there, usGallon, liter);
+    expect(back).toBeCloseTo(7, 10);
+    expect(back).not.toBe(7);
+  });
+
   it("chains through the base with no direct edge between units", () => {
-    expect(new Quantity(1, mile).in(inch)).toBeCloseTo(63360, 6);
+    expect(new Quantity(1, foot).in(inch)).toBe(12);
+    expect(new Quantity(1, mile).in(inch)).toBe(63360);
   });
 
   it("throws when units belong to different dimensions", () => {
@@ -112,9 +121,9 @@ describe("conversion is dimension-only", () => {
 
 describe("affine temperature", () => {
   it("converts across offset scales", () => {
-    expect(new Quantity(100, celsius).in(fahrenheit)).toBeCloseTo(212, 10);
-    expect(new Quantity(32, fahrenheit).in(celsius)).toBeCloseTo(0, 10);
-    expect(new Quantity(0, celsius).in(kelvin)).toBeCloseTo(273.15, 10);
+    expect(new Quantity(100, celsius).in(fahrenheit)).toBe(212);
+    expect(new Quantity(32, fahrenheit).in(celsius)).toBe(0);
+    expect(new Quantity(0, celsius).in(kelvin)).toBe(273.15);
   });
 });
 
@@ -144,7 +153,7 @@ describe("express (best-fit formatting)", () => {
     expect(imperial.express(distance).unit).toBe(mile);
     const metricBest = metric.express(distance);
     expect(metricBest.unit.name).toBe("kilometer");
-    expect(metricBest.magnitude).toBeCloseTo(5, 10);
+    expect(metricBest.magnitude).toBe(5);
   });
 });
 
@@ -224,7 +233,7 @@ describe("Quantity arithmetic", () => {
     // How many 250 mL servings fit in a 2 L bottle?
     expect(new Quantity(2, liter).ratioTo(new Quantity(250, milliliter))).toBe(8);
     // Same dimension, different units (here the divisor's magnitude is 1).
-    expect(new Quantity(1, mile).ratioTo(new Quantity(1, kilometer))).toBeCloseTo(1.609344, 6);
+    expect(new Quantity(1, mile).ratioTo(new Quantity(1, kilometer))).toBe(1.609344);
     // Same unit, divisor magnitude ≠ 1.
     expect(new Quantity(10, meter).ratioTo(new Quantity(2, meter))).toBe(5);
     expect(() => new Quantity(1, meter).ratioTo(new Quantity(1, liter))).toThrow(
@@ -346,7 +355,7 @@ describe("Quantity predicates and rounding", () => {
   });
 
   it("rounds the magnitude to the given decimals, keeping the unit", () => {
-    expect(new Quantity(1.6213, mile).round(2).magnitude).toBeCloseTo(1.62, 10);
+    expect(new Quantity(1.6213, mile).round(2).magnitude).toBe(1.62);
     expect(new Quantity(1.6213, mile).round().magnitude).toBe(2);
     expect(new Quantity(2.5, meter).round().magnitude).toBe(3);
     expect(new Quantity(1.2345, meter).round(2).unit).toBe(meter);
@@ -356,15 +365,15 @@ describe("Quantity predicates and rounding", () => {
 describe("metric prefixes", () => {
   it("fills in the SI ladder for length", () => {
     expect(new Quantity(1, kilometer).in(meter)).toBe(1000);
-    expect(new Quantity(1, hectometer).in(meter)).toBeCloseTo(100, 9);
-    expect(new Quantity(1, decameter).in(meter)).toBeCloseTo(10, 9);
-    expect(new Quantity(1, decimeter).in(meter)).toBeCloseTo(0.1, 12);
-    expect(new Quantity(1, micrometer).in(meter)).toBeCloseTo(1e-6, 18);
+    expect(new Quantity(1, hectometer).in(meter)).toBe(100);
+    expect(new Quantity(1, decameter).in(meter)).toBe(10);
+    expect(new Quantity(1, decimeter).in(meter)).toBe(0.1);
+    expect(new Quantity(1, micrometer).in(meter)).toBe(1e-6);
   });
 
   it("prefixes the gram (not the kilogram base) for mass", () => {
-    expect(new Quantity(1, megagram).in(kilogram)).toBeCloseTo(1000, 6);
-    expect(new Quantity(1000, milligram).in(gram)).toBeCloseTo(1, 9);
+    expect(new Quantity(1, megagram).in(kilogram)).toBe(1000);
+    expect(new Quantity(1000, milligram).in(gram)).toBe(1);
   });
 
   it("parses prefixed symbols, including the micro sign", () => {
@@ -434,8 +443,8 @@ describe("dimension coverage (parity with `convert`)", () => {
   });
 
   it("converts area units", () => {
-    expect(new Quantity(1, hectare).in(squareMeter)).toBeCloseTo(10000, 6);
-    expect(new Quantity(1, acre).in(squareFoot)).toBeCloseTo(43560, 2);
+    expect(new Quantity(1, hectare).in(squareMeter)).toBe(10000);
+    expect(new Quantity(1, acre).in(squareFoot)).toBe(43560);
   });
 
   it("converts data units across SI and IEC multiples", () => {
@@ -447,9 +456,9 @@ describe("dimension coverage (parity with `convert`)", () => {
 
   it("converts energy units", () => {
     expect(new Quantity(1, kilojoule).in(joule)).toBe(1000);
-    expect(new Quantity(1, wattHour).in(joule)).toBeCloseTo(3600, 6);
-    expect(new Quantity(1, kilowattHour).in(joule)).toBeCloseTo(3.6e6, 1);
-    expect(new Quantity(1, calorie).in(joule)).toBeCloseTo(4.184, 6);
+    expect(new Quantity(1, wattHour).in(joule)).toBe(3600);
+    expect(new Quantity(1, kilowattHour).in(joule)).toBe(3.6e6);
+    expect(new Quantity(1, calorie).in(joule)).toBe(4.184);
   });
 
   it("converts frequency units", () => {
@@ -457,7 +466,7 @@ describe("dimension coverage (parity with `convert`)", () => {
   });
 
   it("converts illuminance units", () => {
-    expect(new Quantity(1, footCandle).in(lux)).toBeCloseTo(10.764, 3);
+    expect(new Quantity(1, footCandle).in(lux)).toBe(10.764);
   });
 
   it("treats the nit as candela per square meter", () => {
@@ -470,7 +479,7 @@ describe("dimension coverage (parity with `convert`)", () => {
 
   it("converts power units", () => {
     expect(new Quantity(1, kilowatt).in(watt)).toBe(1000);
-    expect(new Quantity(1, horsepower).in(watt)).toBeCloseTo(745.699872, 6);
+    expect(new Quantity(1, horsepower).in(watt)).toBe(745.699872);
   });
 
   it("converts pressure units", () => {

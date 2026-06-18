@@ -3,9 +3,14 @@
 Convert between units of measurement, with batteries-included common units and
 first-class support for defining your own.
 
-- **No drift** — each unit defines a single transform to its dimension's base
-  unit; reverse conversions are derived, never stored, so they can't fall out of
-  sync.
+- **Exact, no drift** — magnitudes are held as exact rational numbers and
+  conversions run in rational arithmetic, collapsing to a float only when you
+  read `.magnitude`. So `foot → inch` is exactly `12` (not `12.000000000000002`),
+  and chains and round trips like `liter → gallon → liter` come back to exactly
+  what you started with.
+- **No redundant factors** — each unit defines a single transform to its
+  dimension's base unit; reverse conversions are derived, never stored, so they
+  can't fall out of sync.
 - **Free chaining** — any unit converts to any other in the same dimension
   (e.g. `mile → inch`) without you defining every pair.
 - **Affine units** — temperature scales (°C/°F/K) and anything else needing an
@@ -26,7 +31,7 @@ The package is split into three import paths so the core stays lean:
 
 | Import                     | What you get                                                              |
 | -------------------------- | ------------------------------------------------------------------------- |
-| `measurable`             | The building blocks: `Quantity`, `Dimension`, `MeasurementSystem`, `Unit`, errors |
+| `measurable`             | The building blocks: `Quantity`, `Dimension`, `MeasurementSystem`, `Unit`, `Rational`, errors |
 | `measurable/dimensions`  | Predefined dimensions and their units (`length`, `meter`, `volume`, …)    |
 | `measurable/systems`     | Predefined measurement systems (`metric`, `imperial`, `usCustomary`)      |
 
@@ -34,7 +39,7 @@ The package is split into three import paths so the core stays lean:
 
 ```ts
 import { Quantity } from "measurable";
-import { meter, mile, celsius, fahrenheit } from "measurable/dimensions";
+import { meter, mile, foot, inch, celsius, fahrenheit } from "measurable/dimensions";
 
 // Convert: `.to()` returns a Quantity, `.in()` returns a raw number.
 new Quantity(5, mile).to(meter).magnitude; // 8046.72
@@ -42,6 +47,10 @@ new Quantity(5, mile).in(meter);           // 8046.72
 
 // Affine scales work the same way.
 new Quantity(100, celsius).in(fahrenheit); // 212
+
+// Conversions are exact: magnitudes are rationals under the hood.
+new Quantity(1, foot).in(inch);                          // 12 (not 12.000000000000002)
+new Quantity(1, foot).to(inch).to(foot).magnitude;       // 1 (exact round trip)
 ```
 
 ## Concepts
@@ -49,12 +58,45 @@ new Quantity(100, celsius).in(fahrenheit); // 212
 - **`Dimension`** — a kind of measurable quantity (length, volume, mass, …). It
   owns a canonical **base unit** and is where all conversion happens. A unit
   belongs to exactly one dimension.
-- **`Unit`** — a name plus a transform (`toBase` / `fromBase`) into its
-  dimension's base unit. Created through a dimension's builder methods.
-- **`Quantity`** — a magnitude paired with a unit (e.g. `5 kilometer`).
+- **`Unit`** — a name plus a transform into its dimension's base unit: an exact
+  rational `scale`/`offset` for linear and affine units, or an arbitrary
+  function pair for `custom` ones. Created through a dimension's builder methods.
+- **`Quantity`** — a magnitude paired with a unit (e.g. `5 kilometer`). The
+  magnitude is held as an exact **`Rational`**; `.magnitude` reads it as a
+  `number`.
+- **`Rational`** — an exact rational number (`n / d` over `bigint`s) used for the
+  lossless arithmetic above. You rarely construct one directly, but can pass one
+  anywhere a magnitude or scale is expected.
 - **`MeasurementSystem`** — a cross-dimension tag (metric/imperial/…). A unit can
   belong to many; membership is optional and never affects whether a conversion
   is allowed.
+
+## Exact arithmetic
+
+A linear conversion is inherently rational — a foot is exactly `3048/10000` m and
+an inch exactly `254/10000` m, so a foot is exactly `12` inches. Storing those
+ratios as binary floats and routing values through the base unit loses that
+(`1 foot → inch` would give `12.000000000000002`).
+
+Instead, each `Quantity` keeps its magnitude as an exact `Rational`, and
+conversions/arithmetic run in rational arithmetic, collapsing to a `number` only
+when you read `.magnitude` (or call `.in()`). Because nothing is collapsed
+mid-chain, conversions compose without accumulating drift:
+
+```ts
+import { Quantity } from "measurable";
+import { liter, usGallon } from "measurable/dimensions";
+
+// A round trip through an awkward ratio still lands exactly on 7.
+new Quantity(7, liter).to(usGallon).to(liter).magnitude; // 7
+
+// .rational exposes the underlying exact value (always in lowest terms).
+new Quantity(7, liter).to(usGallon).rational; // Rational 125000000/67596639
+```
+
+This is exact for linear and affine units. A conversion that passes through a
+non-linear `custom` unit (e.g. a logarithmic scale) necessarily uses floating
+point and recaptures the result as a rational, so it is best-effort there.
 
 ## Built-in dimensions
 
@@ -212,9 +254,10 @@ new Quantity(1, shortTon).in(tonne); // 0.90718474
 
 Quantities can be combined. `plus`/`minus` take another `Quantity` (converted into
 the receiver's unit first, so the operands may use different units of the same
-dimension); `times`/`dividedBy` apply a dimensionless scalar, and `negate`/`abs`
-transform the magnitude. All return a **new** `Quantity` in the receiver's unit and
-leave the operands untouched.
+dimension); `times`/`dividedBy` apply a dimensionless scalar (a `number` or a
+`Rational`), and `negate`/`abs` transform the magnitude. All return a **new**
+`Quantity` in the receiver's unit and leave the operands untouched. Like
+conversions, the arithmetic is exact — `q.times(3).dividedBy(3)` returns `q`.
 
 ```ts
 import { Quantity } from "measurable";
@@ -269,8 +312,11 @@ new Quantity(1, kilometer).greaterThan(new Quantity(1, meter));  // true
 
 Short aliases: **`eq`** (`equals`), **`ne`** (`notEquals`), **`lt`** (`lessThan`),
 **`gt`** (`greaterThan`), **`lte`** (`lessThanOrEqual`), **`gte`**
-(`greaterThanOrEqual`). Equality is exact, so values differing only by
-floating-point rounding from a conversion may compare unequal.
+(`greaterThanOrEqual`). Comparison is exact rational comparison, so quantities
+that are mathematically equal compare equal even when reaching them involved a
+conversion that would have drifted in floating point — e.g.
+`new Quantity(7, liter).to(usGallon).to(liter).equals(new Quantity(7, liter))` is
+`true`.
 
 `compareTo(other)` returns `-1`, `0`, or `1`, suitable as an `Array#sort`
 comparator: `quantities.sort((a, b) => a.compareTo(b))`.
@@ -310,13 +356,35 @@ const megabyte = data.unit("megabyte", 1024 ** 2, ["MB"]);
 new Quantity(2, megabyte).in(kilobyte); // 2048
 ```
 
+A numeric `scale` is read as the exact decimal you wrote (`0.0254` → `254/10000`),
+which is exact for any terminating decimal. For a ratio a decimal **can't**
+represent exactly — e.g. `5/9` — pass a `Rational` so it stays exact:
+
+```ts
+import { Dimension, Rational } from "measurable";
+
+const ratio = new Dimension("ratio");
+ratio.base("whole");
+const third = ratio.unit("third", new Rational(1, 3)); // exact, not 0.3333…
+```
+
 ### Affine units (offset, not just scale)
 
 ```ts
+import { Dimension, Rational } from "measurable";
+
 const temperature = new Dimension("temperature");
 const kelvin = temperature.base("kelvin", ["K"]);
 // value_in_base = value * scale + offset
 const celsius = temperature.affine("celsius", { scale: 1, offset: 273.15 }, ["C"]);
+// Fahrenheit's 5/9 isn't a terminating decimal — give it (and the derived
+// offset) as exact Rationals so conversions round-trip without drift.
+const scale = new Rational(5, 9);
+const fahrenheit = temperature.affine(
+  "fahrenheit",
+  { scale, offset: Rational.from(273.15).minus(new Rational(32).times(scale)) },
+  ["F"],
+);
 ```
 
 ### Fully custom transforms
@@ -363,10 +431,11 @@ si.has(kilobyte); // true
 
 - `new Dimension(name)`
 - `.base(name, aliases?)` — define the canonical base unit
-- `.unit(name, scale, aliases?)` — linear unit (`scale` base units per unit)
-- `.affine(name, { scale, offset }, aliases?)` — linear with additive offset
-- `.custom(name, { toBase, fromBase }, aliases?)` — arbitrary inverse pair
-- `.convert(value, from, to)` — convert a raw number between two of its units
+- `.unit(name, scale, aliases?)` — linear unit (`scale` base units per unit; `number | Rational`)
+- `.affine(name, { scale, offset }, aliases?)` — linear with additive offset (each `number | Rational`)
+- `.custom(name, { toBase, fromBase }, aliases?)` — arbitrary inverse pair, for non-linear units
+- `.convert(value, from, to)` — convert a raw `number` between two of its units
+- `.convertRational(value, from, to)` → `Rational` — exact conversion between two of its units
 - `.get(token)` — units matching a name/alias (`Unit[] | undefined`)
 - `.has(unit)`, `.units`, `.baseUnit`
 
@@ -377,17 +446,20 @@ A passive handle, normally created via a dimension's builder methods rather than
 
 - `.name` — the unit's canonical name
 - `.dimension` — the `Dimension` it belongs to
+- `.linear` → `{ scale: Rational; offset: Rational } | undefined` — the exact transform for linear/affine units (`undefined` for `custom` ones)
 - `.toBase(value)` → `number` — convert a value in this unit to base units
 - `.fromBase(value)` → `number` — convert a value in base units to this unit
 
 ### `Quantity`
 
-- `new Quantity(magnitude, unit)`
+- `new Quantity(magnitude, unit)` — `magnitude` is a `number | Rational`; throws on a non-finite `number`
+- `.magnitude` → `number` — getter, derived from `.rational`
+- `.rational` → `Rational` — the exact magnitude (source of truth)
 - `.to(target)` → `Quantity`
 - `.in(target)` → `number`
 - `.toString()` → `string` — e.g. `"5 kilometer"`
 - `.plus(other)` / `.minus(other)` → `Quantity` — add/subtract another quantity (aliases: `add` / `sub`)
-- `.times(factor)` / `.dividedBy(divisor)` → `Quantity` — scale by a number (aliases: `mul` / `div`)
+- `.times(factor)` / `.dividedBy(divisor)` → `Quantity` — scale by a `number | Rational` (aliases: `mul` / `div`)
 - `.ratioTo(other)` → `number` — dimensionless ratio (how many of `other` fit in this)
 - `.negate()` / `.abs()` → `Quantity`
 - `.clamp(lower, upper)` → `Quantity` — bound to a range, in this unit
@@ -399,6 +471,23 @@ A passive handle, normally created via a dimension's builder methods rather than
 - `.isZero()` / `.isPositive()` / `.isNegative()` → `boolean`
 - `Quantity.min(...quantities)` / `Quantity.max(...quantities)` / `Quantity.sum(...quantities)` → `Quantity`
 - `Quantity.parse(input, dimension, { prefer? })` → `Quantity`
+
+### `Rational`
+
+An exact rational number (`n / d`), stored as `bigint`s in lowest terms with a
+positive denominator. Immutable; every operation returns a new `Rational`. Used
+internally for lossless conversions and arithmetic, but you can construct one to
+pass anywhere a magnitude or scale is accepted.
+
+- `new Rational(numerator, denominator?)` — from integers (`bigint | number`; denominator defaults to `1`). Throws on a non-integer `number` or a zero denominator.
+- `Rational.from(value)` — coerce a `number | Rational` (a `number` is read as its exact terminating decimal, e.g. `0.0254` → `254/10000`)
+- `.n` / `.d` → `bigint` — numerator and denominator
+- `.plus(other)` / `.minus(other)` / `.times(other)` / `.dividedBy(other)` → `Rational` (aliases: `add` / `sub` / `mul` / `div`)
+- `.negate()` / `.abs()` → `Rational`
+- `.equals(other)` → `boolean` (alias: `eq`)
+- `.compare(other)` → `-1 | 0 | 1`
+- `.sign()` → `-1 | 0 | 1`
+- `.toNumber()` → `number` — collapse to the nearest `number`
 
 ### `MeasurementSystem`
 

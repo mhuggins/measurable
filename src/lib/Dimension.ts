@@ -1,12 +1,23 @@
 import { InvalidConversionError } from "../errors/InvalidConversionError";
-import { Unit } from "./Unit";
+import { Rational } from "../lib/Rational";
+import { type LinearTransform, Unit, UnitConversionOptions } from "./Unit";
+
+/** The rational `0`. */
+const zero = new Rational(0n);
+
+/** The rational `1`. */
+const one = new Rational(1n);
 
 /** A linear unit with an additive offset (e.g. temperature scales). */
 export interface AffineSpec {
-  /** Multiplier applied when converting a value to the base unit. */
-  scale: number;
+  /**
+   * Multiplier applied when converting a value to the base unit. Pass a
+   * {@link Rational} (e.g. `new Rational(5, 9)`) for ratios that a decimal
+   * cannot represent exactly.
+   */
+  scale: number | Rational;
   /** Constant added (in base units) after scaling. */
-  offset: number;
+  offset: number | Rational;
 }
 
 /** A fully custom transform pair for non-linear units. */
@@ -21,10 +32,14 @@ export interface CustomSpec {
  * the dimension is defined relative to, and it is the single place where all
  * conversion math happens.
  *
- * Converting `A → B` is always `B.fromBase(A.toBase(value))`: route through the
- * base unit. This gives transitive conversions for free (any unit ↔ any unit)
- * and means each unit only ever stores its relationship to the base — never a
- * redundant, drift-prone pair of factors.
+ * Converting `A → B` routes through the base unit — conceptually
+ * `B.fromBase(A.toBase(value))`. This gives transitive conversions for free
+ * (any unit ↔ any unit) and means each unit only ever stores its relationship
+ * to the base — never a redundant, drift-prone pair of factors. Linear and
+ * affine units carry that relationship as an exact {@link Rational} transform,
+ * so their conversions are done in rational arithmetic and collapsed to a float
+ * once at the end, avoiding the binary rounding of routing through the base.
+ * Only non-linear units (defined via {@link custom}) fall back to float.
  *
  * A dimension is distinct from a {@link MeasurementSystem} (metric/imperial/…):
  * the dimension decides what *can convert*, while a measurement system is a tag
@@ -45,53 +60,65 @@ export class Dimension {
 
   /** Define the canonical base unit (identity transform). */
   base(name: string, aliases: string[] = []): Unit {
-    const unit = this.define(
-      name,
-      (x) => x,
-      (x) => x,
-      aliases,
-    );
+    const unit = this.defineLinear(name, { scale: one, offset: zero }, aliases);
     this.baseUnit = unit;
     return unit;
   }
 
   /**
    * Define a linear unit. `scale` is how many base units make up one of this
-   * unit (e.g. a kilometer is `1000` meters).
+   * unit (e.g. a kilometer is `1000` meters). Pass a {@link Rational} for a
+   * scale a decimal cannot represent exactly.
    */
-  unit(name: string, scale: number, aliases: string[] = []): Unit {
-    return this.define(
-      name,
-      (x) => x * scale,
-      (x) => x / scale,
-      aliases,
-    );
+  unit(name: string, scale: number | Rational, aliases: string[] = []): Unit {
+    return this.defineLinear(name, { scale: Rational.from(scale), offset: zero }, aliases);
   }
 
   /** Define an affine unit (scale plus additive offset, e.g. °C against K). */
   affine(name: string, { scale, offset }: AffineSpec, aliases: string[] = []): Unit {
-    return this.define(
+    return this.defineLinear(
       name,
-      (x) => x * scale + offset,
-      (x) => (x - offset) / scale,
+      { scale: Rational.from(scale), offset: Rational.from(offset) },
       aliases,
     );
   }
 
-  /** Define a unit with an arbitrary, hand-written inverse transform pair. */
+  /**
+   * Define a non-linear unit from an arbitrary, hand-written inverse transform
+   * pair. Reserve this for units that genuinely cannot be expressed as `value *
+   * scale + offset` — e.g. logarithmic scales (decibels, octaves). Linear and
+   * affine units should use {@link unit} / {@link affine} so conversions stay
+   * exact.
+   */
   custom(name: string, { toBase, fromBase }: CustomSpec, aliases: string[] = []): Unit {
-    return this.define(name, toBase, fromBase, aliases);
+    return this.define(name, aliases, { toBase, fromBase });
   }
 
-  /** Convert a value between two units of this dimension, routed through the base. */
+  /** Convert a `number` value between two units of this dimension. */
   convert(value: number, from: Unit, to: Unit): number {
+    return this.convertRational(Rational.from(value), from, to).toNumber();
+  }
+
+  /**
+   * Convert an exact {@link Rational} value between two units, routed through
+   * the base. Linear / affine units stay exact end-to-end (the result is never
+   * collapsed to a float here), which is what lets {@link Quantity} chain
+   * conversions without drift. A conversion touching a non-linear `custom` unit
+   * falls back to float math and recaptures the result as a rational.
+   */
+  convertRational(value: Rational, from: Unit, to: Unit): Rational {
     if (!this.units.has(from) || !this.units.has(to)) {
       throw new InvalidConversionError(from, to);
     }
     if (from === to) {
       return value;
     }
-    return to.fromBase(from.toBase(value));
+    if (from.linear && to.linear) {
+      // base = from.scale * value + from.offset; result = (base - to.offset) / to.scale
+      const base = from.linear.scale.times(value).plus(from.linear.offset);
+      return base.minus(to.linear.offset).dividedBy(to.linear.scale);
+    }
+    return Rational.from(to.fromBase(from.toBase(value.toNumber())));
   }
 
   /** Resolve a name or alias to its candidate unit(s) (used by parsing). */
@@ -103,18 +130,18 @@ export class Dimension {
     return this.units.has(unit);
   }
 
-  private define(
-    name: string,
-    toBase: (value: number) => number,
-    fromBase: (value: number) => number,
-    aliases: string[],
-  ): Unit {
+  /** Define a linear / affine unit from its exact rational transform. */
+  private defineLinear(name: string, linear: LinearTransform, aliases: string[]): Unit {
+    return this.define(name, aliases, { linear });
+  }
+
+  private define(name: string, aliases: string[], transform: UnitConversionOptions): Unit {
     for (const existing of this.units) {
       if (existing.name === name) {
         throw new Error(`Duplicate unit name "${name}" in dimension "${this.name}"`);
       }
     }
-    const unit = new Unit({ name, dimension: this, toBase, fromBase });
+    const unit = new Unit({ name, dimension: this, ...transform });
     this.units.add(unit);
     this.register(name, unit);
     for (const alias of aliases) {

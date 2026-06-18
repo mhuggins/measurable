@@ -1,4 +1,5 @@
 import type { Dimension } from "../lib/Dimension";
+import { Rational } from "../lib/Rational";
 import type { Unit } from "../lib/Unit";
 
 /** A metric (SI) prefix: a name, symbol, and power-of-ten factor. */
@@ -44,7 +45,7 @@ export interface PrefixReference {
   /** Primary symbol, e.g. "m" → "km", "mm", … */
   symbol: string;
   /** Scale of the reference relative to its dimension's base (meter → 1, gram → 0.001) (default 1). */
-  scale?: number;
+  scale?: number | Rational;
 }
 
 /**
@@ -74,7 +75,11 @@ export function definePrefixed(
     if (prefix.name === "micro") {
       aliases.push(`u${reference.symbol}`);
     }
-    units[name] = dimension.unit(name, (reference.scale ?? 1) * prefix.factor, aliases);
+    // Multiply as rationals: each factor (a power of ten, or an exact reference
+    // scale) is lossless on its own, but multiplying them as floats can drift
+    // (e.g. 3600 * 1e-9). Rational multiplication keeps the prefixed scale exact.
+    const scale = Rational.from(reference.scale ?? 1).times(Rational.from(prefix.factor));
+    units[name] = dimension.unit(name, scale, aliases);
   }
   return units;
 }

@@ -1,4 +1,5 @@
 import type { Unit } from "../lib/Unit";
 
 /** Pure linear scale of a unit relative to base, ignoring any affine offset. */
-export const scaleOf = (unit: Unit): number => unit.toBase(1) - unit.toBase(0);
+export const scaleOf = (unit: Unit): number =>
+  unit.linear ? unit.linear.scale.toNumber() : unit.toBase(1) - unit.toBase(0);
