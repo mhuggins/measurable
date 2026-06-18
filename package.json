@@ -17,6 +17,9 @@
   "author": "Matt Huggins <matt.huggins@gmail.com>",
   "license": "ISC",
   "repository": "https://github.com/mhuggins/measurable",
+  "engines": {
+    "node": ">=14"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
