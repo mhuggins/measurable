@@ -1,5 +1,5 @@
 import { Dimension } from "../lib/Dimension";
-import { definePrefixed } from "../lib/prefixes";
+import { definePrefixed } from "../utils/definePrefixed";
 
 /**
  * Mass / weight. Base unit: gram. (SI's official base is the kilogram, but

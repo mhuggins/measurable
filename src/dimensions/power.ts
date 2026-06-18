@@ -1,5 +1,5 @@
 import { Dimension } from "../lib/Dimension";
-import { definePrefixed } from "../lib/prefixes";
+import { definePrefixed } from "../utils/definePrefixed";
 
 /** Power. Base unit: watt. */
 export const power = new Dimension("power");

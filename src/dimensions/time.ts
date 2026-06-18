@@ -1,5 +1,5 @@
 import { Dimension } from "../lib/Dimension";
-import { definePrefixed, SI_SUBMULTIPLE_PREFIXES } from "../lib/prefixes";
+import { definePrefixed, SI_SUBMULTIPLE_PREFIXES } from "../utils/definePrefixed";
 
 /** Time / duration. Base unit: second. */
 export const time = new Dimension("time");

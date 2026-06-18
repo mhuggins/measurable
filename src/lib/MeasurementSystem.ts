@@ -1,6 +1,6 @@
+import { scaleOf } from "../utils/scaleOf";
 import type { Dimension } from "./Dimension";
 import { Quantity } from "./Quantity";
-import { scaleOf } from "./scale";
 import type { Unit } from "./Unit";
 
 /**

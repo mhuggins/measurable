@@ -1,5 +1,5 @@
 import { Dimension } from "../lib/Dimension";
-import { definePrefixed, SI_SUBMULTIPLE_PREFIXES } from "../lib/prefixes";
+import { definePrefixed, SI_SUBMULTIPLE_PREFIXES } from "../utils/definePrefixed";
 
 /** Plane angle. Base unit: radian. */
 export const angle = new Dimension("angle");

@@ -1,8 +1,8 @@
 import { AmbiguousUnitError } from "../errors/AmbiguousUnitError";
 import { UnknownUnitError } from "../errors/UnknownUnitError";
+import { scaleOf } from "../utils/scaleOf";
 import type { Dimension } from "./Dimension";
 import type { MeasurementSystem } from "./MeasurementSystem";
-import { scaleOf } from "./scale";
 import type { Unit } from "./Unit";
 
 /** Options for {@link Quantity.parse}. */

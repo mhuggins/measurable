@@ -1,5 +1,5 @@
 import { Dimension } from "../lib/Dimension";
-import { definePrefixed } from "../lib/prefixes";
+import { definePrefixed } from "../utils/definePrefixed";
 
 /** Force. Base unit: newton. */
 export const force = new Dimension("force");

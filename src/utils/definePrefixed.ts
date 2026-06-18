@@ -1,5 +1,5 @@
-import type { Dimension } from "./Dimension";
-import type { Unit } from "./Unit";
+import type { Dimension } from "../lib/Dimension";
+import type { Unit } from "../lib/Unit";
 
 /** A metric (SI) prefix: a name, symbol, and power-of-ten factor. */
 export interface SiPrefix {

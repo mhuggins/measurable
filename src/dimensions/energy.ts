@@ -1,5 +1,5 @@
 import { Dimension } from "../lib/Dimension";
-import { definePrefixed } from "../lib/prefixes";
+import { definePrefixed } from "../utils/definePrefixed";
 
 /** Energy. Base unit: joule. */
 export const energy = new Dimension("energy");

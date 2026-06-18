@@ -1,5 +1,5 @@
 import { Dimension } from "../lib/Dimension";
-import { definePrefixed } from "../lib/prefixes";
+import { definePrefixed } from "../utils/definePrefixed";
 
 /** Frequency. Base unit: hertz. */
 export const frequency = new Dimension("frequency");
