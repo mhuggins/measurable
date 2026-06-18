@@ -1,6 +1,7 @@
 import type { Dimension } from "../lib/Dimension";
 import { Rational } from "../lib/Rational";
 import type { Unit } from "../lib/Unit";
+import { scaleOf } from "./scaleOf";
 
 /** A metric (SI) prefix: a name, symbol, and power-of-ten factor. */
 export interface SiPrefix {
@@ -38,21 +39,14 @@ export const SI_SUBMULTIPLE_PREFIXES: readonly SiPrefix[] = SI_PREFIXES.filter(
   (prefix) => prefix.factor < 1,
 );
 
-/** The unit a set of metric prefixes is generated relative to. */
-export interface PrefixReference {
-  /** Singular unit name, e.g. "meter" → "kilometer", "millimeter", … */
-  name: string;
-  /** Primary symbol, e.g. "m" → "km", "mm", … */
-  symbol: string;
-  /** Scale of the reference relative to its dimension's base (meter → 1, gram → 0.001) (default 1). */
-  scale?: number | Rational;
-}
-
 /**
- * Define metric-prefixed variants of a reference unit on a dimension. Each
- * variant is named `${prefix}${reference.name}` (e.g. "kilometer") with scale
- * `reference.scale * prefix.factor`, plus a `${prefix.symbol}${reference.symbol}`
- * alias and a plural (and an ASCII "u" form for micro).
+ * Define metric-prefixed variants of a `reference` unit on its dimension. Each
+ * variant is named `${prefix}${reference.name}` (e.g. "kilometer"), scaled by
+ * `prefix.factor` relative to the reference (its own scale is read from the unit
+ * via {@link scaleOf}, so prefixing a non-base unit like the watt-hour works
+ * automatically). Each variant carries a generated `symbol`
+ * (`${prefix.symbol}${reference.symbol}`, when the reference has a symbol) and a
+ * `plural` (`${name}s`), plus an ASCII "u" alias for micro.
  *
  * Prefixes whose generated name already exists on the dimension are skipped, so
  * a base like "kilogram" is left intact when prefixing "gram".
@@ -62,24 +56,31 @@ export interface PrefixReference {
  */
 export function definePrefixed(
   dimension: Dimension,
-  reference: PrefixReference,
+  reference: Unit,
   prefixes: readonly SiPrefix[] = SI_PREFIXES,
 ): Record<string, Unit> {
+  // Prefer the reference's exact rational scale so the prefixed scale stays
+  // exact; fall back to its float scale only for non-linear references.
+  const referenceScale = reference.linear
+    ? reference.linear.scale
+    : Rational.from(scaleOf(reference));
   const units: Record<string, Unit> = {};
   for (const prefix of prefixes) {
     const name = `${prefix.name}${reference.name}`;
     if (dimension.get(name)) {
       continue;
     }
-    const aliases = [`${prefix.symbol}${reference.symbol}`, `${name}s`];
-    if (prefix.name === "micro") {
-      aliases.push(`u${reference.symbol}`);
-    }
+    const symbol = reference.symbol ? `${prefix.symbol}${reference.symbol}` : undefined;
+    const aliases = prefix.name === "micro" && reference.symbol ? [`u${reference.symbol}`] : [];
     // Multiply as rationals: each factor (a power of ten, or an exact reference
     // scale) is lossless on its own, but multiplying them as floats can drift
     // (e.g. 3600 * 1e-9). Rational multiplication keeps the prefixed scale exact.
-    const scale = Rational.from(reference.scale ?? 1).times(Rational.from(prefix.factor));
-    units[name] = dimension.unit(name, scale, aliases);
+    const scale = referenceScale.times(Rational.from(prefix.factor));
+    units[name] = dimension.unit(name, scale, {
+      symbol,
+      plural: `${name}s`,
+      aliases,
+    });
   }
   return units;
 }

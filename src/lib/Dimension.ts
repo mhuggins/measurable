@@ -26,6 +26,16 @@ export interface CustomSpec {
   fromBase: (value: number) => number;
 }
 
+/** Optional descriptors for a unit: its symbol, plural, and extra parse aliases. */
+export interface UnitDef {
+  /** Canonical symbol, e.g. `"g"`, `"km"`, `"°C"`. Also registered for parsing. */
+  symbol?: string;
+  /** Plural name, e.g. `"grams"`. Also registered for parsing. */
+  plural?: string;
+  /** Additional names this unit parses from (beyond name, symbol, and plural). */
+  aliases?: string[];
+}
+
 /**
  * A dimension is a single *kind* of measurable quantity (length, volume, mass,
  * temperature, …). It owns one canonical **base unit** that every other unit in
@@ -59,8 +69,8 @@ export class Dimension {
   constructor(public readonly name: string) {}
 
   /** Define the canonical base unit (identity transform). */
-  base(name: string, aliases: string[] = []): Unit {
-    const unit = this.defineLinear(name, { scale: one, offset: zero }, aliases);
+  base(name: string, def: UnitDef = {}): Unit {
+    const unit = this.defineLinear(name, { scale: one, offset: zero }, def);
     this.baseUnit = unit;
     return unit;
   }
@@ -70,16 +80,16 @@ export class Dimension {
    * unit (e.g. a kilometer is `1000` meters). Pass a {@link Rational} for a
    * scale a decimal cannot represent exactly.
    */
-  unit(name: string, scale: number | Rational, aliases: string[] = []): Unit {
-    return this.defineLinear(name, { scale: Rational.from(scale), offset: zero }, aliases);
+  unit(name: string, scale: number | Rational, def: UnitDef = {}): Unit {
+    return this.defineLinear(name, { scale: Rational.from(scale), offset: zero }, def);
   }
 
   /** Define an affine unit (scale plus additive offset, e.g. °C against K). */
-  affine(name: string, { scale, offset }: AffineSpec, aliases: string[] = []): Unit {
+  affine(name: string, { scale, offset }: AffineSpec, def: UnitDef = {}): Unit {
     return this.defineLinear(
       name,
       { scale: Rational.from(scale), offset: Rational.from(offset) },
-      aliases,
+      def,
     );
   }
 
@@ -90,8 +100,8 @@ export class Dimension {
    * affine units should use {@link unit} / {@link affine} so conversions stay
    * exact.
    */
-  custom(name: string, { toBase, fromBase }: CustomSpec, aliases: string[] = []): Unit {
-    return this.define(name, aliases, { toBase, fromBase });
+  custom(name: string, { toBase, fromBase }: CustomSpec, def: UnitDef = {}): Unit {
+    return this.define(name, def, { toBase, fromBase });
   }
 
   /** Convert a `number` value between two units of this dimension. */
@@ -131,21 +141,27 @@ export class Dimension {
   }
 
   /** Define a linear / affine unit from its exact rational transform. */
-  private defineLinear(name: string, linear: LinearTransform, aliases: string[]): Unit {
-    return this.define(name, aliases, { linear });
+  private defineLinear(name: string, linear: LinearTransform, def: UnitDef): Unit {
+    return this.define(name, def, { linear });
   }
 
-  private define(name: string, aliases: string[], transform: UnitConversionOptions): Unit {
+  private define(
+    name: string,
+    { symbol, plural, aliases = [] }: UnitDef,
+    transform: UnitConversionOptions,
+  ): Unit {
     for (const existing of this.units) {
       if (existing.name === name) {
         throw new Error(`Duplicate unit name "${name}" in dimension "${this.name}"`);
       }
     }
-    const unit = new Unit({ name, dimension: this, ...transform });
+    const unit = new Unit({ name, dimension: this, symbol, plural, ...transform });
     this.units.add(unit);
-    this.register(name, unit);
-    for (const alias of aliases) {
-      this.register(alias, unit);
+    // Register every label this unit can be parsed from, de-duplicated so a unit
+    // never appears twice among a token's candidates (e.g. if symbol === name).
+    const tokens = new Set([name, symbol, plural, ...aliases].filter((t): t is string => !!t));
+    for (const token of tokens) {
+      this.register(token, unit);
     }
     return unit;
   }

@@ -78,9 +78,12 @@ describe("Dimension", () => {
   describe("custom dimensions", () => {
     it("lets a user define their own dimension and units", () => {
       const customData = new Dimension("customData");
-      const byte = customData.base("byte", ["B", "bytes"]);
-      const kilobyte = customData.unit("kilobyte", 1024, ["KB"]);
+      const byte = customData.base("byte", { symbol: "B", plural: "bytes" });
+      const kilobyte = customData.unit("kilobyte", 1024, { symbol: "KB", plural: "kilobytes" });
       expect(new Quantity(2, kilobyte).in(byte)).toBe(2048);
+      // symbol and plural are registered for parsing, just like aliases.
+      expect(Quantity.parse("2 KB", customData).unit).toBe(kilobyte);
+      expect(Quantity.parse("3 bytes", customData).unit).toBe(byte);
     });
   });
 

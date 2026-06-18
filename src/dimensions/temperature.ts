@@ -13,10 +13,14 @@ export const temperature = new Dimension("temperature");
 const fahrenheitScale = new Rational(5, 9);
 const fahrenheitOffset = Rational.from(273.15).minus(new Rational(32).times(fahrenheitScale));
 
-export const kelvin = temperature.base("kelvin", ["K"]);
-export const celsius = temperature.affine("celsius", { scale: 1, offset: 273.15 }, ["C", "°C"]);
+export const kelvin = temperature.base("kelvin", { symbol: "K" });
+export const celsius = temperature.affine(
+  "celsius",
+  { scale: 1, offset: 273.15 },
+  { symbol: "°C", aliases: ["C"] },
+);
 export const fahrenheit = temperature.affine(
   "fahrenheit",
   { scale: fahrenheitScale, offset: fahrenheitOffset },
-  ["F", "°F"],
+  { symbol: "°F", aliases: ["F"] },
 );

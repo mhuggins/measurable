@@ -1,3 +1,4 @@
+import { assertNever } from "assert-never";
 import { AmbiguousUnitError } from "../errors/AmbiguousUnitError";
 import { UnknownUnitError } from "../errors/UnknownUnitError";
 import { scaleOf } from "../utils/scaleOf";
@@ -10,6 +11,49 @@ import type { Unit } from "./Unit";
 export interface ParseOptions {
   /** Preferred measurement system, used only to break ties on shared aliases. */
   prefer?: MeasurementSystem;
+}
+
+/** Options for {@link Quantity.format}. */
+export interface FormatOptions {
+  /**
+   * Which label to render after the magnitude:
+   *  - `"auto"` (default) — singular `name` when the magnitude is exactly ±1,
+   *    otherwise the `plural`.
+   *  - `"name"` — always the singular name.
+   *  - `"plural"` — always the plural.
+   *  - `"symbol"` — the unit's symbol.
+   *
+   * `plural`/`symbol` fall back to the unit's `name` when that field is unset.
+   * Labels are English/canonical; localize the *magnitude* via {@link locale} /
+   * {@link numberFormat}.
+   */
+  unit?: "auto" | "name" | "plural" | "symbol";
+
+  /**
+   * BCP 47 locale(s) used to render the magnitude (e.g. `"de-DE"`, `["fr", "en"]`).
+   * Passed straight to `Number.prototype.toLocaleString`. When omitted, the
+   * runtime's default locale is used.
+   */
+  locale?: string | string[];
+
+  /**
+   * `Intl.NumberFormat` options for the magnitude — precision
+   * (`minimumFractionDigits` / `maximumFractionDigits`), `style: "currency"`,
+   * grouping, and so on. Passed straight to `Number.prototype.toLocaleString`.
+   */
+  numberFormat?: Intl.NumberFormatOptions;
+}
+
+/**
+ * The rendered pieces of a formatted quantity, as returned by
+ * {@link Quantity.formatParts}. Each is already a finished string; the caller
+ * decides how to assemble them (a plain join, JSX, a template, …).
+ */
+export interface FormattedParts {
+  /** The locale-formatted magnitude, e.g. `"1.234,5"`. */
+  magnitude: string;
+  /** The chosen unit label, e.g. `"kilometers"`, `"km"`. */
+  unit: string;
 }
 
 /** A magnitude paired with a unit (e.g. `5` `kilometer`). */
@@ -54,6 +98,62 @@ export class Quantity {
   /** Render as `"<magnitude> <unit name>"`, e.g. `"5 kilometer"`. */
   toString(): string {
     return `${this.magnitude} ${this.unit.name}`;
+  }
+
+  /**
+   * Render as `"<magnitude> <label>"`, choosing the label per `options.unit`
+   * (default `"auto"`: magnitude-aware singular/plural). Unlike {@link toString},
+   * this can use the unit's symbol or plural — e.g. `"5 grams"`, `"5 g"`,
+   * `"1 gram"`. Pass `locale` / `numberFormat` to localize the magnitude via
+   * `toLocaleString` — e.g. `format({ locale: "de-DE" })` → `"1.234,5 meters"`,
+   * or `format({ numberFormat: { maximumFractionDigits: 2 } })` for precision.
+   *
+   * For non-string output (e.g. JSX), use {@link formatParts} and assemble the
+   * pieces yourself.
+   */
+  format(options: FormatOptions = {}): string {
+    const { magnitude, unit } = this.formatParts(options);
+    return `${magnitude} ${unit}`;
+  }
+
+  /**
+   * Like {@link format}, but returns the rendered magnitude and label as
+   * separate strings instead of joining them, so the caller controls the
+   * assembly. Useful when a single string won't do — e.g. styling the magnitude
+   * in a React component:
+   *
+   * ```tsx
+   * const { magnitude, unit } = q.formatParts({ locale: "de-DE" });
+   * return <><b>{magnitude}</b> {unit}</>;
+   * ```
+   */
+  formatParts(options: FormatOptions = {}): FormattedParts {
+    return { magnitude: this.formatMagnitude(options), unit: this.formatLabel(options) };
+  }
+
+  /**
+   * Render the magnitude via `toLocaleString`. With no `locale`/`numberFormat`
+   * it uses the runtime's default locale; supply either for locale- and
+   * precision-aware formatting.
+   */
+  private formatMagnitude({ locale, numberFormat }: FormatOptions): string {
+    return this.magnitude.toLocaleString(locale, numberFormat);
+  }
+
+  private formatLabel({ unit = "auto" }: FormatOptions): string {
+    const { name, symbol, plural } = this.unit;
+    switch (unit) {
+      case "symbol":
+        return symbol ?? name;
+      case "name":
+        return name;
+      case "plural":
+        return plural ?? name;
+      case "auto":
+        return Math.abs(this.magnitude) === 1 ? name : (plural ?? name);
+      default:
+        return assertNever(unit);
+    }
   }
 
   /**

@@ -206,9 +206,65 @@ metric.express(new Quantity(5000, meter));    // Quantity(5, kilometer)
 imperial.express(new Quantity(5000, meter));  // Quantity(3.107…, mile)
 ```
 
-A `Quantity` also has a `toString()` that renders `"<magnitude> <unit name>"`
-(e.g. `new Quantity(5, kilometer).toString()` → `"5 kilometer"`), and `round(decimals)`
-to trim the magnitude for display (`new Quantity(1.6213, mile).round(2)` → `1.62 mile`).
+## Formatting output
+
+Each unit carries a canonical `symbol` (`"g"`, `"km"`, `"°C"`) and `plural`
+(`"grams"`, `"kilometers"`) alongside its `name`, so a `Quantity` can be rendered the
+way you want:
+
+```ts
+import { Quantity } from "measurable";
+import { gram } from "measurable/dimensions";
+
+new Quantity(5, gram).toString();                 // "5 gram"   (always the bare name)
+new Quantity(5, gram).format();                   // "5 grams"  (magnitude-aware)
+new Quantity(1, gram).format();                   // "1 gram"   (singular at ±1)
+new Quantity(5, gram).format({ unit: "symbol" }); // "5 g"
+new Quantity(5, gram).format({ unit: "name" });   // "5 gram"
+new Quantity(5, gram).format({ unit: "plural" }); // "5 grams"
+
+// Localize the magnitude with locale / numberFormat (passed to toLocaleString):
+new Quantity(1234.5, meter).format({ locale: "de-DE" });                             // "1.234,5 meters"
+new Quantity(1.23456, meter).format({ numberFormat: { maximumFractionDigits: 2 } }); // "1.23 meters"
+new Quantity(1234.5, kilometer).format({ locale: "de-DE", unit: "symbol" });         // "1.234,5 km"
+```
+
+`toString()` is intentionally stable (`"<magnitude> <name>"`). `format(options?)` is the
+flexible one: `unit` defaults to `"auto"` (singular `name` at ±1, otherwise `plural`) and
+accepts `"name"`, `"plural"`, or `"symbol"`. When a unit has no `symbol`/`plural`, those
+modes fall back to its `name`.
+
+The magnitude is rendered with `Number.prototype.toLocaleString`. Pass `locale` (a BCP 47
+locale or array) and/or `numberFormat` (`Intl.NumberFormatOptions` — precision via
+`maximumFractionDigits`, grouping, `style`, …) to control it; with neither set, the
+runtime's default locale is used. Use `round(decimals)` to trim the magnitude first
+(`new Quantity(1.6213, mile).round(2)` → `1.62 mile`).
+
+When a single string won't do — e.g. styling the magnitude in a React component — use
+`formatParts(options?)`, which takes the same options but returns the rendered
+`{ magnitude, unit }` as separate strings for you to assemble:
+
+```tsx
+const { magnitude, unit } = new Quantity(1234.5, kilometer).formatParts({ locale: "de-DE" });
+// { magnitude: "1.234,5", unit: "kilometers" }
+return <><b>{magnitude}</b> {unit}</>;
+```
+
+### Internationalization
+
+`format()` localizes the **magnitude** (via `locale`/`numberFormat`), but the **label** it
+appends — `symbol`/`plural` — is **English/canonical** convenience data, not a localization
+system: a single plural string can't model languages with several plural forms, and the
+names themselves are English. For a fully localized label, delegate to `Intl.NumberFormat`,
+whose `style: "unit"` localizes **and** pluralizes a curated set of units for you:
+
+```ts
+const q = new Quantity(5, kilometer);
+new Intl.NumberFormat("de", { style: "unit", unit: "kilometer" }).format(q.magnitude);
+// "5 Kilometer"
+new Intl.NumberFormat("fr", { style: "unit", unit: "kilometer", unitDisplay: "short" })
+  .format(q.magnitude); // "5 km"
+```
 
 ## Parsing strings
 
@@ -343,17 +399,21 @@ b.clamp(a, new Quantity(2, kilometer)); // b bounded to [a, 2 km], in b's unit
 ## Defining your own units
 
 Create a `Dimension` and add units through its builder methods. `scale` is how
-many base units make up one of the unit being defined.
+many base units make up one of the unit being defined. The optional final argument
+is a definition object — `{ symbol?, plural?, aliases? }` — whose `symbol` and
+`plural` feed `format()` and, like `aliases`, are also registered for parsing.
 
 ```ts
 import { Dimension, Quantity } from "measurable";
 
 const data = new Dimension("data");
-const byte = data.base("byte", ["B", "bytes"]); // the base unit (identity)
-const kilobyte = data.unit("kilobyte", 1024, ["KB"]);
-const megabyte = data.unit("megabyte", 1024 ** 2, ["MB"]);
+const byte = data.base("byte", { symbol: "B", plural: "bytes" }); // base unit (identity)
+const kilobyte = data.unit("kilobyte", 1024, { symbol: "KB", plural: "kilobytes" });
+const megabyte = data.unit("megabyte", 1024 ** 2, { symbol: "MB", plural: "megabytes" });
 
-new Quantity(2, megabyte).in(kilobyte); // 2048
+new Quantity(2, megabyte).in(kilobyte);      // 2048
+new Quantity(2, megabyte).format();          // "2 megabytes"
+new Quantity(2, megabyte).format({ unit: "symbol" }); // "2 MB"
 ```
 
 A numeric `scale` is read as the exact decimal you wrote (`0.0254` → `254/10000`),
@@ -374,16 +434,19 @@ const third = ratio.unit("third", new Rational(1, 3)); // exact, not 0.3333…
 import { Dimension, Rational } from "measurable";
 
 const temperature = new Dimension("temperature");
-const kelvin = temperature.base("kelvin", ["K"]);
+const kelvin = temperature.base("kelvin", { symbol: "K" });
 // value_in_base = value * scale + offset
-const celsius = temperature.affine("celsius", { scale: 1, offset: 273.15 }, ["C"]);
+const celsius = temperature.affine("celsius", { scale: 1, offset: 273.15 }, {
+  symbol: "°C",
+  aliases: ["C"],
+});
 // Fahrenheit's 5/9 isn't a terminating decimal — give it (and the derived
 // offset) as exact Rationals so conversions round-trip without drift.
 const scale = new Rational(5, 9);
 const fahrenheit = temperature.affine(
   "fahrenheit",
   { scale, offset: Rational.from(273.15).minus(new Rational(32).times(scale)) },
-  ["F"],
+  { symbol: "°F", aliases: ["F"] },
 );
 ```
 
@@ -402,18 +465,22 @@ dim.custom("squared", {
 
 ### Generating SI prefixes
 
-`definePrefixed` adds the metric prefix ladder to a reference unit and returns the
-created units keyed by name (skipping any name that already exists). Pass
-`SI_SUBMULTIPLE_PREFIXES` to generate fractions only.
+`definePrefixed` adds the metric prefix ladder to a reference **unit** and returns the
+created units keyed by name (skipping any name that already exists). It reads the
+reference's `name`, `symbol`, and scale straight off the unit (via `scaleOf`), so each
+generated unit gets a derived symbol (`b` → `kb`) and plural too — even when the
+reference isn't the base unit. Pass `SI_SUBMULTIPLE_PREFIXES` to generate fractions only.
 
 ```ts
 import { Dimension, Quantity, definePrefixed } from "measurable";
 
 const data = new Dimension("data");
-const bit = data.base("bit", ["b"]);
-const prefixed = definePrefixed(data, { name: "bit", symbol: "b", scale: 1 });
+const bit = data.base("bit", { symbol: "b", plural: "bits" });
+const prefixed = definePrefixed(data, bit);
 
-new Quantity(1, prefixed.kilobit).in(bit); // 1000  (SI kilo = 1e3)
+new Quantity(1, prefixed.kilobit).in(bit);   // 1000  (SI kilo = 1e3)
+prefixed.kilobit.symbol;                     // "kb"
+new Quantity(5, prefixed.kilobit).format({ unit: "symbol" }); // "5 kb"
 ```
 
 ### Tagging units into a measurement system
@@ -430,14 +497,17 @@ si.has(kilobyte); // true
 ### `Dimension`
 
 - `new Dimension(name)`
-- `.base(name, aliases?)` — define the canonical base unit
-- `.unit(name, scale, aliases?)` — linear unit (`scale` base units per unit; `number | Rational`)
-- `.affine(name, { scale, offset }, aliases?)` — linear with additive offset (each `number | Rational`)
-- `.custom(name, { toBase, fromBase }, aliases?)` — arbitrary inverse pair, for non-linear units
+- `.base(name, def?)` — define the canonical base unit
+- `.unit(name, scale, def?)` — linear unit (`scale` base units per unit; `number | Rational`)
+- `.affine(name, { scale, offset }, def?)` — linear with additive offset (each `number | Rational`)
+- `.custom(name, { toBase, fromBase }, def?)` — arbitrary inverse pair, for non-linear units
 - `.convert(value, from, to)` — convert a raw `number` between two of its units
 - `.convertRational(value, from, to)` → `Rational` — exact conversion between two of its units
 - `.get(token)` — units matching a name/alias (`Unit[] | undefined`)
 - `.has(unit)`, `.units`, `.baseUnit`
+
+`def` is an optional `UnitDef`: `{ symbol?, plural?, aliases? }`. All three are
+registered as parse tokens; `symbol`/`plural` are additionally stored on the `Unit`.
 
 ### `Unit`
 
@@ -445,6 +515,8 @@ A passive handle, normally created via a dimension's builder methods rather than
 `new Unit` directly. Read-only properties:
 
 - `.name` — the unit's canonical name
+- `.symbol?` — canonical symbol (e.g. `"g"`, `"km"`), if declared
+- `.plural?` — plural name (e.g. `"grams"`), if declared
 - `.dimension` — the `Dimension` it belongs to
 - `.linear` → `{ scale: Rational; offset: Rational } | undefined` — the exact transform for linear/affine units (`undefined` for `custom` ones)
 - `.toBase(value)` → `number` — convert a value in this unit to base units
@@ -457,7 +529,9 @@ A passive handle, normally created via a dimension's builder methods rather than
 - `.rational` → `Rational` — the exact magnitude (source of truth)
 - `.to(target)` → `Quantity`
 - `.in(target)` → `number`
-- `.toString()` → `string` — e.g. `"5 kilometer"`
+- `.toString()` → `string` — stable `"<magnitude> <name>"`, e.g. `"5 kilometer"`
+- `.format({ unit?, locale?, numberFormat? })` → `string` — `unit`: `"auto"` (default, magnitude-aware) / `"name"` / `"plural"` / `"symbol"`; `locale` + `numberFormat` localize the magnitude via `toLocaleString`
+- `.formatParts(options?)` → `{ magnitude, unit }` — same options as `.format`, but returns the rendered pieces separately for custom assembly (e.g. JSX)
 - `.plus(other)` / `.minus(other)` → `Quantity` — add/subtract another quantity (aliases: `add` / `sub`)
 - `.times(factor)` / `.dividedBy(divisor)` → `Quantity` — scale by a `number | Rational` (aliases: `mul` / `div`)
 - `.ratioTo(other)` → `number` — dimensionless ratio (how many of `other` fit in this)

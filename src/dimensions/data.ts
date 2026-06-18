@@ -4,9 +4,9 @@ import type { Unit } from "../lib/Unit";
 /** Digital information. Base unit: bit. */
 export const data = new Dimension("data");
 
-export const bit = data.base("bit", ["b", "bits"]);
-export const nibble = data.unit("nibble", 4, ["nibbles"]);
-export const byte = data.unit("byte", 8, ["B", "bytes"]);
+export const bit = data.base("bit", { symbol: "b", plural: "bits" });
+export const nibble = data.unit("nibble", 4, { plural: "nibbles" });
+export const byte = data.unit("byte", 8, { symbol: "B", plural: "bytes" });
 
 // SI (decimal, 1000-based) and IEC (binary, 1024-based) multiples of the bit
 // and byte. SI uses the bare symbol (kb, kB); IEC uses the "i" infix (Kib, KiB).
@@ -28,11 +28,14 @@ const IEC_MULTIPLES = [
 
 const multiples: Record<string, Unit> = {};
 for (const [prefix, symbol, factor] of [...SI_MULTIPLES, ...IEC_MULTIPLES]) {
-  multiples[`${prefix}bit`] = data.unit(`${prefix}bit`, factor, [`${symbol}b`, `${prefix}bits`]);
-  multiples[`${prefix}byte`] = data.unit(`${prefix}byte`, 8 * factor, [
-    `${symbol}B`,
-    `${prefix}bytes`,
-  ]);
+  multiples[`${prefix}bit`] = data.unit(`${prefix}bit`, factor, {
+    symbol: `${symbol}b`,
+    plural: `${prefix}bits`,
+  });
+  multiples[`${prefix}byte`] = data.unit(`${prefix}byte`, 8 * factor, {
+    symbol: `${symbol}B`,
+    plural: `${prefix}bytes`,
+  });
 }
 
 /** Every SI and IEC multiple of the bit and byte, keyed by name. */

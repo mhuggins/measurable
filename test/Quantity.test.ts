@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { AmbiguousUnitError, InvalidConversionError, Quantity, UnknownUnitError } from "../src";
+import {
+  AmbiguousUnitError,
+  Dimension,
+  InvalidConversionError,
+  Quantity,
+  UnknownUnitError,
+} from "../src";
 import { kilometer, meter, mile } from "../src/dimensions/length";
-import { longTon, mass, shortTon } from "../src/dimensions/mass";
+import { gram, longTon, mass, shortTon } from "../src/dimensions/mass";
+import { psi } from "../src/dimensions/pressure";
 import { hour, minute, second, time } from "../src/dimensions/time";
 import {
   imperialFluidOunce,
@@ -232,6 +239,82 @@ describe("Quantity", () => {
       expect(new Quantity(5, kilometer).toString()).toBe("5 kilometer");
       expect(String(new Quantity(2.5, meter))).toBe("2.5 meter");
       expect(`${new Quantity(3, meter)}`).toBe("3 meter");
+    });
+
+    it("format() is magnitude-aware by default (singular at ±1, else plural)", () => {
+      expect(new Quantity(5, gram).format()).toBe("5 grams");
+      expect(new Quantity(1, gram).format()).toBe("1 gram");
+      expect(new Quantity(-1, gram).format()).toBe("-1 gram");
+      expect(new Quantity(5, kilometer).format()).toBe("5 kilometers");
+    });
+
+    it("format() honors an explicit unit style", () => {
+      const q = new Quantity(5, gram);
+      expect(q.format({ unit: "symbol" })).toBe("5 g");
+      expect(q.format({ unit: "name" })).toBe("5 gram");
+      expect(q.format({ unit: "plural" })).toBe("5 grams");
+    });
+
+    it("format() falls back to name when symbol/plural are unset", () => {
+      // psi has no symbol; a user-defined unit here has neither symbol nor plural.
+      expect(new Quantity(30, psi).format({ unit: "symbol" })).toBe("30 psi");
+      const d = new Dimension("d");
+      const widget = d.base("widget");
+      expect(new Quantity(5, widget).format()).toBe("5 widget");
+      expect(new Quantity(5, widget).format({ unit: "plural" })).toBe("5 widget");
+    });
+
+    it("format() renders the magnitude in the runtime's default locale when none is given", () => {
+      const localized = (1234.5).toLocaleString();
+      expect(new Quantity(1234.5, meter).format()).toBe(`${localized} meters`);
+    });
+
+    it("format() localizes the magnitude via a locale", () => {
+      // German groups with "." and uses "," as the decimal separator.
+      expect(new Quantity(1234.5, meter).format({ locale: "de-DE" })).toBe("1.234,5 meters");
+      expect(new Quantity(1234.5, meter).format({ locale: "en-US" })).toBe("1,234.5 meters");
+    });
+
+    it("format() honors Intl.NumberFormat precision options", () => {
+      expect(
+        new Quantity(1.23456, meter).format({
+          locale: "en-US",
+          numberFormat: { maximumFractionDigits: 2 },
+        }),
+      ).toBe("1.23 meters");
+      // numberFormat without a locale still routes through toLocaleString
+      // (rendered in the runtime's default locale).
+      const localized = (2).toLocaleString(undefined, { minimumFractionDigits: 2 });
+      expect(new Quantity(2, gram).format({ numberFormat: { minimumFractionDigits: 2 } })).toBe(
+        `${localized} grams`,
+      );
+    });
+
+    it("format() combines localized magnitude with an explicit unit style", () => {
+      expect(new Quantity(1234.5, kilometer).format({ locale: "de-DE", unit: "symbol" })).toBe(
+        "1.234,5 km",
+      );
+    });
+
+    it("formatParts() returns the magnitude and label as separate strings", () => {
+      expect(new Quantity(5, kilometer).formatParts()).toEqual({
+        magnitude: "5",
+        unit: "kilometers",
+      });
+      expect(new Quantity(1, gram).formatParts()).toEqual({ magnitude: "1", unit: "gram" });
+    });
+
+    it("formatParts() honors the same options as format()", () => {
+      expect(
+        new Quantity(1234.5, kilometer).formatParts({ locale: "de-DE", unit: "symbol" }),
+      ).toEqual({ magnitude: "1.234,5", unit: "km" });
+    });
+
+    it("format() and formatParts() stay in sync", () => {
+      const q = new Quantity(1234.5, meter);
+      const options = { locale: "de-DE", numberFormat: { maximumFractionDigits: 1 } } as const;
+      const { magnitude, unit } = q.formatParts(options);
+      expect(q.format(options)).toBe(`${magnitude} ${unit}`);
     });
   });
 });

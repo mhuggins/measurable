@@ -14,6 +14,10 @@ export interface LinearTransform {
 interface BaseUnitOptions {
   name: string;
   dimension: Dimension;
+  /** Canonical symbol, e.g. `"g"`, `"km"`, `"°C"` (optional). */
+  symbol?: string;
+  /** Plural name, e.g. `"grams"`, `"kilometers"` (optional). */
+  plural?: string;
 }
 
 interface LinearConversionOptions {
@@ -51,8 +55,10 @@ type UnitOptions = BaseUnitOptions & UnitConversionOptions;
  * {@link MeasurementSystem}s (metric/imperial/…); that membership lives on the
  * measurement systems, not here, so a `Unit` stays a lean descriptor.
  *
- * Names and aliases live solely in the dimension's lookup index; they are
- * declared once when the unit is defined.
+ * Parsing aliases live in the dimension's lookup index. A unit additionally
+ * carries its canonical {@link symbol} and {@link plural} as first-class data
+ * so callers can choose how to render it (see {@link Quantity.format}); both are
+ * optional and English-centric — real localization is left to the consumer.
  *
  * Units are normally created through a {@link Dimension}'s builder methods
  * (`base`, `unit`, `affine`, `custom`) rather than constructed directly.
@@ -60,11 +66,17 @@ type UnitOptions = BaseUnitOptions & UnitConversionOptions;
 export class Unit {
   public readonly name: string;
   public readonly dimension: Dimension;
+  /** Canonical symbol, e.g. `"g"`, `"km"`, `"°C"` (optional). */
+  public readonly symbol?: string;
+  /** Plural name, e.g. `"grams"`, `"kilometers"` (optional). */
+  public readonly plural?: string;
   private readonly conversion: UnitConversionOptions;
 
-  constructor({ name, dimension, ...conversionOptions }: UnitOptions) {
+  constructor({ name, dimension, symbol, plural, ...conversionOptions }: UnitOptions) {
     this.name = name;
     this.dimension = dimension;
+    this.symbol = symbol;
+    this.plural = plural;
     this.conversion = conversionOptions;
   }
 
