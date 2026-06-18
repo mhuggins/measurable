@@ -51,11 +51,10 @@ describe("Dimension", () => {
       }
     });
 
-    it("drifts when round-tripping through intermediate floats", () => {
+    it("round-trips through intermediate floats without drift", () => {
       const there = liter.dimension.convert(7, liter, usGallon);
       const back = liter.dimension.convert(there, usGallon, liter);
-      expect(back).toBeCloseTo(7, 10);
-      expect(back).not.toBe(7);
+      expect(back).toBe(7);
     });
 
     it("chains through the base with no direct edge between units", () => {

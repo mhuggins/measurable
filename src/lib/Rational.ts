@@ -137,9 +137,40 @@ export class Rational {
 
   /** Collapse to the nearest `number`. */
   toNumber(): number {
-    return Number(this.n) / Number(this.d);
+    const { n, d } = this;
+    if (n === 0n) {
+      return 0;
+    }
+    // Fast path: both operands are exactly representable as doubles, so a single
+    // IEEE division is correctly rounded.
+    if (n >= -MAX_EXACT_INT && n <= MAX_EXACT_INT && d <= MAX_EXACT_INT) {
+      return Number(n) / Number(d);
+    }
+    // Otherwise converting each operand to a double first would round it before
+    // dividing and lose precision (e.g. denominators like 10^24). Long-divide to
+    // SIG significant digits and let Number()'s correctly-rounded decimal parser
+    // produce the nearest double, independent of magnitude.
+    const SIG = 20;
+    const negative = n < 0n;
+    const num = negative ? -n : n;
+    // floor(log10(num / d)), accurate to within 1 — enough to capture SIG digits.
+    const exponent = num.toString().length - d.toString().length;
+    const shift = SIG - 1 - exponent;
+    const scaledNum = shift >= 0 ? num * 10n ** BigInt(shift) : num;
+    const scaledDen = shift >= 0 ? d : d * 10n ** BigInt(-shift);
+    let digits = scaledNum / scaledDen;
+    if (2n * (scaledNum % scaledDen) >= scaledDen) {
+      digits += 1n; // round half up on the last significant digit
+    }
+    return Number(`${negative ? "-" : ""}${digits}e${exponent - (SIG - 1)}`);
   }
 }
+
+/**
+ * One past `Number.MAX_SAFE_INTEGER` (i.e. 2^53): every integer with magnitude
+ * at most this is exactly representable as a double, so `Number(n)` is lossless.
+ */
+const MAX_EXACT_INT = BigInt(Number.MAX_SAFE_INTEGER) + 1n;
 
 function gcd(a: bigint, b: bigint): bigint {
   let x = a < 0n ? -a : a;
