@@ -502,6 +502,12 @@ pass anywhere a magnitude or scale is accepted.
 - `UnknownUnitError` — a parsed token matches no unit
 - `AmbiguousUnitError` — a parsed token matches several units and no `prefer` was given
 
+## Changelog
+
+See [CHANGELOG.md](https://github.com/mhuggins/measurable/blob/main/CHANGELOG.md)
+for release notes. Note that v2.0.0 is a breaking release — see its entry for the
+migration details.
+
 ## License
 
 ISC

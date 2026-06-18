@@ -1,6 +1,6 @@
 {
   "name": "measurable",
-  "version": "1.1.1",
+  "version": "2.0.0",
   "description": "Convert between units of measurement with custom and built-in systems",
   "keywords": [
     "conversion",
@@ -37,7 +37,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "prebuild": "pnpm run lint && pnpm run format && pnpm run typecheck && pnpm run test",
