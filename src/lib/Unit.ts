@@ -11,7 +11,7 @@ export interface LinearTransform {
   offset: Rational;
 }
 
-interface BaseUnitOptions {
+export interface BaseUnitOptions {
   name: string;
   dimension: Dimension;
   /** Canonical symbol, e.g. `"g"`, `"km"`, `"°C"` (optional). */
@@ -20,20 +20,18 @@ interface BaseUnitOptions {
   plural?: string;
 }
 
-interface LinearConversionOptions {
-  /** Exact transform for linear / affine units (the common case). */
-  linear: LinearTransform;
-}
+export type UnitConversionOptions =
+  | {
+      /** Exact transform for linear / affine units (the common case). */
+      linear: LinearTransform;
+    }
+  | {
+      /** Hand-written transform for non-linear units; mutually exclusive with `linear`. */
+      toBase: (value: number) => number;
+      fromBase: (value: number) => number;
+    };
 
-interface CustomConversionOptions {
-  /** Hand-written transform for non-linear units; mutually exclusive with `linear`. */
-  toBase: (value: number) => number;
-  fromBase: (value: number) => number;
-}
-
-export type UnitConversionOptions = LinearConversionOptions | CustomConversionOptions;
-
-type UnitOptions = BaseUnitOptions & UnitConversionOptions;
+export type UnitOptions = BaseUnitOptions & UnitConversionOptions;
 
 /**
  * A single unit of measurement (e.g. "meter", "celsius").

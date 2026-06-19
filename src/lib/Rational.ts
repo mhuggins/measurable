@@ -17,7 +17,7 @@ export class Rational {
   /**
    * Build a rational from integer numerator and denominator. Pass exact ratios
    * the literal way — `new Rational(5, 9)` — using `bigint` or integer `number`.
-   * For a decimal value, use {@link Rational.fromNumber} instead.
+   * For a decimal value, use {@link Rational.from} instead.
    */
   constructor(numerator: bigint | number, denominator: bigint | number = 1n) {
     let n = toBigInt(numerator);

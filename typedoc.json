@@ -1,0 +1,11 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts", "src/dimensions/index.ts", "src/systems/index.ts"],
+  "emit": "none",
+  "treatWarningsAsErrors": true,
+  "validation": {
+    "invalidLink": true,
+    "notExported": true,
+    "notDocumented": false
+  }
+}

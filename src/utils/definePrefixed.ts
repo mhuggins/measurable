@@ -43,7 +43,7 @@ export const SI_SUBMULTIPLE_PREFIXES: readonly SiPrefix[] = SI_PREFIXES.filter(
  * Define metric-prefixed variants of a `reference` unit on its dimension. Each
  * variant is named `${prefix}${reference.name}` (e.g. "kilometer"), scaled by
  * `prefix.factor` relative to the reference (its own scale is read from the unit
- * via {@link scaleOf}, so prefixing a non-base unit like the watt-hour works
+ * via `scaleOf`, so prefixing a non-base unit like the watt-hour works
  * automatically). Each variant carries a generated `symbol`
  * (`${prefix.symbol}${reference.symbol}`, when the reference has a symbol) and a
  * `plural` (`${name}s`), plus an ASCII "u" alias for micro.

@@ -1,5 +1,5 @@
 import { InvalidConversionError } from "../errors/InvalidConversionError";
-import { Rational } from "../lib/Rational";
+import { Rational } from "./Rational";
 import { type LinearTransform, Unit, UnitConversionOptions } from "./Unit";
 
 /** The rational `0`. */
