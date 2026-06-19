@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { Dimension, InvalidConversionError, Quantity } from "../src";
+import {
+  Dimension,
+  DimensionMismatchError,
+  DuplicateUnitError,
+  InvalidConversionError,
+  Quantity,
+} from "../src";
 import { angle } from "../src/dimensions/angle";
 import { acre, area, hectare, squareFoot, squareMeter } from "../src/dimensions/area";
 import { bit, byte, data, kibibyte, kilobyte, megabyte } from "../src/dimensions/data";
@@ -63,6 +69,11 @@ describe("Dimension", () => {
     });
 
     it("throws when units belong to different dimensions", () => {
+      expect(() => length.convert(1, meter, liter)).toThrow(DimensionMismatchError);
+    });
+
+    it("still recognizes the deprecated InvalidConversionError alias", () => {
+      expect(InvalidConversionError).toBe(DimensionMismatchError);
       expect(() => length.convert(1, meter, liter)).toThrow(InvalidConversionError);
     });
   });
@@ -84,6 +95,12 @@ describe("Dimension", () => {
       // symbol and plural are registered for parsing, just like aliases.
       expect(Quantity.parse("2 KB", customData).unit).toBe(kilobyte);
       expect(Quantity.parse("3 bytes", customData).unit).toBe(byte);
+    });
+
+    it("throws a DuplicateUnitError on a repeated unit name", () => {
+      const dim = new Dimension("dup");
+      dim.base("foo");
+      expect(() => dim.unit("foo", 2)).toThrow(DuplicateUnitError);
     });
   });
 

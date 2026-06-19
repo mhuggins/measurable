@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   AmbiguousUnitError,
+  ArgumentError,
   Dimension,
-  InvalidConversionError,
+  DimensionMismatchError,
+  ParseError,
   Quantity,
   UnknownUnitError,
 } from "../src";
@@ -49,6 +51,10 @@ describe("Quantity", () => {
 
     it("throws on an unknown unit token", () => {
       expect(() => Quantity.parse("5 furlongs", time)).toThrow(UnknownUnitError);
+    });
+
+    it("throws a ParseError when no quantity can be read", () => {
+      expect(() => Quantity.parse("not a quantity", time)).toThrow(ParseError);
     });
 
     it("throws on a shared alias with no preferred system", () => {
@@ -109,7 +115,7 @@ describe("Quantity", () => {
       // Same unit, divisor magnitude ≠ 1.
       expect(new Quantity(10, meter).ratioTo(new Quantity(2, meter))).toBe(5);
       expect(() => new Quantity(1, meter).ratioTo(new Quantity(1, liter))).toThrow(
-        InvalidConversionError,
+        DimensionMismatchError,
       );
     });
 
@@ -135,7 +141,7 @@ describe("Quantity", () => {
 
     it("throws when combining different dimensions", () => {
       expect(() => new Quantity(1, mile).plus(new Quantity(1, liter))).toThrow(
-        InvalidConversionError,
+        DimensionMismatchError,
       );
     });
 
@@ -190,7 +196,7 @@ describe("Quantity", () => {
 
     it("throws when comparing different dimensions", () => {
       expect(() => new Quantity(1, meter).equals(new Quantity(1, liter))).toThrow(
-        InvalidConversionError,
+        DimensionMismatchError,
       );
     });
   });
@@ -212,7 +218,7 @@ describe("Quantity", () => {
 
     it("throws when mixing dimensions", () => {
       expect(() => Quantity.min(new Quantity(1, meter), new Quantity(1, liter))).toThrow(
-        InvalidConversionError,
+        DimensionMismatchError,
       );
     });
   });
@@ -246,11 +252,11 @@ describe("Quantity", () => {
     });
 
     it("requires at least one unit", () => {
-      expect(() => new Quantity(1, meter).best()).toThrow("at least one unit");
+      expect(() => new Quantity(1, meter).best()).toThrow(ArgumentError);
     });
 
     it("throws when a candidate belongs to another dimension", () => {
-      expect(() => new Quantity(1, meter).best(liter)).toThrow(InvalidConversionError);
+      expect(() => new Quantity(1, meter).best(liter)).toThrow(DimensionMismatchError);
     });
   });
 

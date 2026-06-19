@@ -1,3 +1,4 @@
+import { UnsupportedDimensionError } from "../errors/UnsupportedDimensionError";
 import type { Dimension } from "./Dimension";
 import { Quantity } from "./Quantity";
 import type { Unit } from "./Unit";
@@ -42,9 +43,7 @@ export class MeasurementSystem {
   express(quantity: Quantity): Quantity {
     const candidates = this.in(quantity.unit.dimension);
     if (candidates.length === 0) {
-      throw new Error(
-        `Measurement system "${this.name}" has no "${quantity.unit.dimension.name}" units to express in`,
-      );
+      throw new UnsupportedDimensionError(this, quantity.unit.dimension);
     }
 
     return quantity.best(...candidates);

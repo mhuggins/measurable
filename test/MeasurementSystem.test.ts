@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { Quantity } from "../src";
+import { MeasurementSystem, Quantity, UnsupportedDimensionError } from "../src";
 import { acre, area, squareFoot, squareMeter } from "../src/dimensions/area";
 import { joule } from "../src/dimensions/energy";
 import { hertz, kilohertz } from "../src/dimensions/frequency";
@@ -40,6 +40,11 @@ describe("MeasurementSystem", () => {
       const metricBest = metric.express(distance);
       expect(metricBest.unit.name).toBe("kilometer");
       expect(metricBest.magnitude).toBe(5);
+    });
+
+    it("throws UnsupportedDimensionError when the system has no units of the dimension", () => {
+      const empty = new MeasurementSystem("empty");
+      expect(() => empty.express(new Quantity(5, meter))).toThrow(UnsupportedDimensionError);
     });
   });
 

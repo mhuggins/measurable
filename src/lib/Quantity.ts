@@ -1,5 +1,7 @@
 import { assertNever } from "assert-never";
 import { AmbiguousUnitError } from "../errors/AmbiguousUnitError";
+import { ArgumentError } from "../errors/ArgumentError";
+import { ParseError } from "../errors/ParseError";
 import { UnknownUnitError } from "../errors/UnknownUnitError";
 import { scaleOf } from "../utils/scaleOf";
 import type { Dimension } from "./Dimension";
@@ -100,12 +102,12 @@ export class Quantity {
    * unit whose absolute magnitude is still at least 1 (falling back to the
    * smallest unit when even that rounds below 1). Requires at least one unit,
    * and each must belong to this quantity's dimension (else
-   * {@link InvalidConversionError}).
+   * {@link DimensionMismatchError}).
    */
   best(...units: Unit[]): Quantity {
     const candidates = [...units].sort((a, b) => scaleOf(a) - scaleOf(b));
     if (candidates.length === 0) {
-      throw new Error("Quantity.best requires at least one unit");
+      throw new ArgumentError("Quantity.best requires at least one unit");
     }
 
     let chosen = candidates[0];
@@ -183,7 +185,7 @@ export class Quantity {
   /**
    * Add another quantity, returned in *this* quantity's unit. The other operand
    * is converted into this unit first, so the two may use different units of the
-   * same dimension (e.g. `mile.plus(km)`). Throws {@link InvalidConversionError}
+   * same dimension (e.g. `mile.plus(km)`). Throws {@link DimensionMismatchError}
    * if the operands belong to different dimensions.
    *
    * Note: for affine units (e.g. temperature) addition is mathematically defined
@@ -213,7 +215,7 @@ export class Quantity {
    * Divide this quantity by `other` of the same dimension, yielding the
    * dimensionless ratio between them — i.e. how many of `other` fit in this.
    * Unlike {@link in}, this accounts for `other`'s magnitude, not just its unit.
-   * Throws {@link InvalidConversionError} across dimensions.
+   * Throws {@link DimensionMismatchError} across dimensions.
    */
   ratioTo(other: Quantity): number {
     return this.rational.dividedBy(other.inRational(this.unit)).toNumber();
@@ -268,7 +270,7 @@ export class Quantity {
 
   /**
    * Whether this quantity equals `other`, compared in this quantity's unit.
-   * Throws {@link InvalidConversionError} if the operands belong to different
+   * Throws {@link DimensionMismatchError} if the operands belong to different
    * dimensions. Comparison is exact rational equality, so quantities that are
    * mathematically equal compare equal even if reaching them involved a
    * conversion that would have drifted in floating point.
@@ -385,7 +387,7 @@ export class Quantity {
     }
 
     if (!total || !finest) {
-      throw new Error(`Could not parse a quantity from "${str}"`);
+      throw new ParseError(str);
     }
 
     return total.to(finest);

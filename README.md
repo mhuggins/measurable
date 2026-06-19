@@ -223,7 +223,7 @@ new Quantity(500, meter).best(kilometer, mile);          // Quantity(0.5, kilome
 ```
 
 It requires at least one unit, and each must belong to the quantity's dimension
-(otherwise `InvalidConversionError`).
+(otherwise `DimensionMismatchError`).
 
 ## Formatting output
 
@@ -347,7 +347,7 @@ new Quantity(6, mile).dividedBy(2);                      // Quantity(3, mile)
 Short aliases are available: **`add`** (`plus`), **`sub`** (`minus`), **`mul`**
 (`times`), **`div`** (`dividedBy`).
 
-Combining different dimensions throws `InvalidConversionError`. Note that adding
+Combining different dimensions throws `DimensionMismatchError`. Note that adding
 **affine** units (e.g. temperatures) is mathematically defined but physically
 questionable, since it adds absolute points rather than a difference.
 
@@ -368,13 +368,13 @@ This is different from `.in(unit)`: `.in(milliliter)` only uses the *unit* on th
 right (giving `2000`), whereas `ratioTo` also uses the other quantity's
 **magnitude** (the `250`), so it answers "how many of *that quantity* fit in this
 one." It's the inverse of scalar `times` — `b.times(a.ratioTo(b))` reconstructs
-`a`. Comparing different dimensions throws `InvalidConversionError`.
+`a`. Comparing different dimensions throws `DimensionMismatchError`.
 
 ## Comparison
 
 `equals`/`notEquals`/`lessThan`/`greaterThan`/`lessThanOrEqual`/`greaterThanOrEqual`
 compare two quantities (the other is converted into the receiver's unit first),
-returning a boolean. Comparing different dimensions throws `InvalidConversionError`.
+returning a boolean. Comparing different dimensions throws `DimensionMismatchError`.
 
 ```ts
 import { Quantity } from "measurable";
@@ -400,7 +400,7 @@ comparator: `quantities.sort((a, b) => a.compareTo(b))`.
 
 `Quantity.min`/`max`/`sum` aggregate several quantities at once; `clamp` is an
 instance method that bounds one quantity to a range. Each converts operands as
-needed, so mixing dimensions throws `InvalidConversionError`.
+needed, so mixing dimensions throws `DimensionMismatchError`.
 
 ```ts
 import { Quantity } from "measurable";
@@ -592,9 +592,17 @@ pass anywhere a magnitude or scale is accepted.
 
 ### Errors
 
-- `InvalidConversionError` — units are from different dimensions
+All extend the built-in `Error` (so existing `catch` blocks still catch them) and
+are exported from `measurable`, letting you branch on the failure with
+`instanceof`:
+
+- `DimensionMismatchError` — an operation was attempted on units from different dimensions (converting, comparing, or combining them). Exported as `InvalidConversionError` too, a deprecated alias of the same class.
 - `UnknownUnitError` — a parsed token matches no unit
 - `AmbiguousUnitError` — a parsed token matches several units and no `prefer` was given
+- `ParseError` — a string could not be parsed into a quantity at all
+- `DuplicateUnitError` — a unit name already exists in its dimension
+- `UnsupportedDimensionError` — a system has no units of a dimension to `express` in
+- `ArgumentError` — an argument was invalid (e.g. `best()` with no units, or a non-integer / zero-denominator / non-finite `Rational`)
 
 ## Changelog
 

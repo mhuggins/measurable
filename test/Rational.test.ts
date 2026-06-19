@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { Rational } from "../src";
+import { ArgumentError, Rational } from "../src";
 
 describe("Rational", () => {
   describe("construction", () => {
@@ -24,11 +24,11 @@ describe("Rational", () => {
     });
 
     it("throws on a zero denominator", () => {
-      expect(() => new Rational(1, 0)).toThrow();
+      expect(() => new Rational(1, 0)).toThrow(ArgumentError);
     });
 
     it("throws on a non-integer number argument", () => {
-      expect(() => new Rational(0.5)).toThrow();
+      expect(() => new Rational(0.5)).toThrow(ArgumentError);
     });
   });
 
@@ -49,8 +49,8 @@ describe("Rational", () => {
     });
 
     it("throws on a non-finite number", () => {
-      expect(() => Rational.from(Number.POSITIVE_INFINITY)).toThrow();
-      expect(() => Rational.from(Number.NaN)).toThrow();
+      expect(() => Rational.from(Number.POSITIVE_INFINITY)).toThrow(ArgumentError);
+      expect(() => Rational.from(Number.NaN)).toThrow(ArgumentError);
     });
   });
 

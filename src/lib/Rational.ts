@@ -1,3 +1,5 @@
+import { ArgumentError } from "../errors/ArgumentError";
+
 /**
  * An exact rational number (`n / d`) used to make conversions between linear
  * and affine units lossless. Such conversions are inherently rational — a foot
@@ -23,7 +25,7 @@ export class Rational {
     let n = toBigInt(numerator);
     let d = toBigInt(denominator);
     if (d === 0n) {
-      throw new Error("Rational denominator cannot be zero");
+      throw new ArgumentError("Rational denominator cannot be zero");
     }
     if (d < 0n) {
       n = -n;
@@ -50,11 +52,11 @@ export class Rational {
    */
   private static fromNumber(value: number): Rational {
     if (!Number.isFinite(value)) {
-      throw new Error(`Cannot derive a rational from ${value}`);
+      throw new ArgumentError(`Cannot derive a rational from ${value}`);
     }
     const match = /^(-?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(value.toString());
     if (!match) {
-      throw new Error(`Cannot derive a rational from ${value}`);
+      throw new ArgumentError(`Cannot derive a rational from ${value}`);
     }
     const [, sign, intPart, fracPart = "", expPart] = match;
     let n = BigInt(intPart + fracPart);
@@ -186,7 +188,7 @@ function toBigInt(value: bigint | number): bigint {
     return value;
   }
   if (!Number.isInteger(value)) {
-    throw new Error(`Rational numerator and denominator must be integers; got ${value}`);
+    throw new ArgumentError(`Rational numerator and denominator must be integers; got ${value}`);
   }
   return BigInt(value);
 }

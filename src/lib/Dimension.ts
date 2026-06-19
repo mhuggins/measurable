@@ -1,4 +1,5 @@
-import { InvalidConversionError } from "../errors/InvalidConversionError";
+import { DimensionMismatchError } from "../errors/DimensionMismatchError";
+import { DuplicateUnitError } from "../errors/DuplicateUnitError";
 import { Rational } from "./Rational";
 import { type LinearTransform, Unit, UnitConversionOptions } from "./Unit";
 
@@ -118,7 +119,7 @@ export class Dimension {
    */
   convertRational(value: Rational, from: Unit, to: Unit): Rational {
     if (!this.units.has(from) || !this.units.has(to)) {
-      throw new InvalidConversionError(from, to);
+      throw new DimensionMismatchError(from, to);
     }
     if (from === to) {
       return value;
@@ -152,7 +153,7 @@ export class Dimension {
   ): Unit {
     for (const existing of this.units) {
       if (existing.name === name) {
-        throw new Error(`Duplicate unit name "${name}" in dimension "${this.name}"`);
+        throw new DuplicateUnitError(name, this);
       }
     }
     const unit = new Unit({ name, dimension: this, symbol, plural, ...transform });
